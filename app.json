@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "ExpenSee",
+    "slug": "expensee",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "expensee",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.expensee.app"
+    },
+    "android": {
+      "package": "com.expensee.app",
+      "permissions": ["android.permission.READ_SMS"]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiUrl": "http://localhost:4000/api"
+    },
+    "plugins": [
+      "expo-asset",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ExpenSee to access your photos to set a profile picture."
+        }
+      ]
+    ]
+  }
+}

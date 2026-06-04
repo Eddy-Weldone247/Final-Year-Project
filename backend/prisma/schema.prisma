@@ -1,0 +1,121 @@
+// Prisma schema for ExpenSee.
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id       String @id @default(cuid())
+  email    String @unique
+  name      String
+  password  String
+  avatarUrl String?
+
+  role Role @default(USER)
+
+  isEmailVerified Boolean @default(false)
+
+  // Hashed (never raw) single-use tokens for email verification and resets.
+  emailVerificationToken   String?   @unique
+  emailVerificationExpires DateTime?
+  passwordResetToken       String?   @unique
+  passwordResetExpires     DateTime?
+
+  transactions Transaction[]
+  budgets      Budget[]
+  predictions  Prediction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum PredictionKind {
+  SPENDING
+  CATEGORY
+  MODEL
+}
+
+model Prediction {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        PredictionKind
+  horizonDays Int?
+  // Full prediction payload returned by the ML service.
+  result      Json
+  // Top-level metrics pulled out for easy querying (null for category/empty).
+  mae         Float?
+  rmse        Float?
+  r2          Float?
+  method      String?
+  createdAt   DateTime       @default(now())
+
+  @@index([userId, kind, createdAt])
+  @@map("predictions")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum Category {
+  FOOD
+  TRANSPORT
+  SHOPPING
+  ENTERTAINMENT
+  UTILITIES
+  HEALTHCARE
+  EDUCATION
+  OTHERS
+}
+
+model Transaction {
+  id       String          @id @default(cuid())
+  userId   String
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type     TransactionType
+  amount   Decimal         @db.Decimal(12, 2)
+  category Category
+  note     String?
+  date     DateTime        @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([userId, type])
+  @@index([userId, category])
+  @@map("transactions")
+}
+
+model Budget {
+  id       String    @id @default(cuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // "YYYY-MM" — the month this budget applies to.
+  month    String
+  // null = overall monthly budget; otherwise a per-category budget.
+  category Category?
+  amount   Decimal   @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, month, category])
+  @@index([userId, month])
+  @@map("budgets")
+}
