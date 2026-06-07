@@ -1,12 +1,14 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
-import type { Category, Transaction } from '@/types/transaction';
+import type { Category, Transaction, TransactionType } from '@/types/transaction';
 
 export type AuthStackParamList = {
+  Welcome: undefined;
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token?: string };
+  VerifyEmail: { email?: string };
 };
 
 export type ProfileStackParamList = {
@@ -36,11 +38,10 @@ export type BudgetsStackParamList = {
 export type AppTabParamList = {
   Home: undefined;
   Transactions: NavigatorScreenParams<TransactionsStackParamList>;
-  Add: undefined;
+  Add: { type?: TransactionType } | undefined;
   Budgets: NavigatorScreenParams<BudgetsStackParamList>;
+  Analytics: undefined;
   Profile: NavigatorScreenParams<ProfileStackParamList>;
-  // Only registered for ADMIN users (see AppNavigator).
-  Admin: undefined;
 };
 
 export type RootStackParamList = {

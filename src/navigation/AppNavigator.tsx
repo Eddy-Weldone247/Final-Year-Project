@@ -2,10 +2,9 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, Text } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
-import { AdminScreen } from '@/screens/AdminScreen';
+import { AnalyticsScreen } from '@/screens/AnalyticsScreen';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { AddTransactionScreen } from '@/screens/transactions/AddTransactionScreen';
-import { useAuthStore } from '@/store/authStore';
 
 import { BudgetsNavigator } from './BudgetsNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
@@ -26,17 +25,16 @@ function AddIcon() {
 function BudgetsIcon() {
   return <Text style={styles.icon}>🎯</Text>;
 }
+function AnalyticsIcon() {
+  return <Text style={styles.icon}>📊</Text>;
+}
 function ProfileIcon() {
   return <Text style={styles.icon}>👤</Text>;
-}
-function AdminIcon() {
-  return <Text style={styles.icon}>🛡️</Text>;
 }
 
 /** Authenticated bottom-tab navigation. */
 export function AppNavigator() {
   const { colors } = useTheme();
-  const isAdmin = useAuthStore((state) => state.user?.role === 'ADMIN');
 
   return (
     <Tab.Navigator
@@ -60,14 +58,15 @@ export function AppNavigator() {
         options={{ tabBarIcon: BudgetsIcon }}
       />
       <Tab.Screen
+        name="Analytics"
+        component={AnalyticsScreen}
+        options={{ tabBarIcon: AnalyticsIcon }}
+      />
+      <Tab.Screen
         name="Profile"
         component={ProfileNavigator}
         options={{ tabBarIcon: ProfileIcon }}
       />
-      {/* Admin-only tab, gated on the authenticated user's role. */}
-      {isAdmin && (
-        <Tab.Screen name="Admin" component={AdminScreen} options={{ tabBarIcon: AdminIcon }} />
-      )}
     </Tab.Navigator>
   );
 }

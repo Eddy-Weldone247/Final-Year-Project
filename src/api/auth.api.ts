@@ -28,3 +28,8 @@ export async function resetPassword(payload: ResetPasswordPayload): Promise<Mess
   const { data } = await apiClient.post<MessageResult>('/auth/reset-password', payload);
   return data;
 }
+
+export async function verifyEmail(payload: { token: string }): Promise<MessageResult> {
+  const { data } = await apiClient.post<MessageResult>('/auth/verify-email', payload);
+  return data;
+}

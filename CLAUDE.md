@@ -6,7 +6,7 @@
 > this file** (design tokens, structure, commands, and the _Implemented features_
 > / _Last updated_ lines).
 
-_Last updated: 2026-06-03 (App-wide theming: every screen + shared component now reads `useTheme()` (expanded `ThemeColors`); themed nav headers/tab bar/status bar + `FadeInView` entrance animations and press feedback throughout)_
+_Last updated: 2026-06-06 (New **Analytics** tab (glass) — Income-vs-Expense dual **line** chart w/ interactive pointer tooltip + animated `ProportionBar`, category **pie** (reuses `ExpensePieCard` embedded), monthly **bar** chart w/ tap tooltip; chart draw animations, loading/empty states. `components/analytics/*`; wired as a bottom tab in `AppNavigator`)_
 
 ---
 
@@ -35,7 +35,11 @@ There is no longer an `expensee/` wrapper folder.
 | Navigation | React Navigation v7 (native-stack + bottom-tabs) |
 | Client state | Zustand (auth, theme, settings, imported-SMS — persisted via AsyncStorage) |
 | Charts | `react-native-gifted-charts` + `react-native-svg` (Expo Go OK). gifted-charts' `react-native-linear-gradient` import is aliased to `expo-linear-gradient` in `metro.config.js`; **avoid gradient props** to stay Expo Go-safe |
-| Theming | `useTheme()` + `themeStore` (light/dark/system); palettes in `theme/palette.ts` |
+| Animation | **Reanimated 4** (`react-native-worklets`) — UI-thread 60 FPS; layout `entering` (FadeIn/Up/Down), `useAnimatedStyle/Props`, springs. New Arch is on (`app.json`), all Expo Go-safe. (Built-in `Animated` still used by `FadeInView`.) |
+| Glass / gradient | `expo-blur` (`BlurView`, `experimentalBlurMethod="dimezisBlurView"` for Android) + `expo-linear-gradient`. Always pair blur with a translucent bg so it degrades gracefully |
+| Gestures | `react-native-gesture-handler` (`GestureHandlerRootView` wraps the app in `App.tsx`); swipeable rows via `ReanimatedSwipeable`. Date entry via `@react-native-community/datetimepicker` |
+| Fonts | **Inter** via `@expo-google-fonts/inter` + `expo-font`, loaded in `App.tsx` (gated by `expo-splash-screen`); families/sizes in `theme/typography.ts`. Falls back to system font on load error |
+| Theming | `useTheme()` + `themeStore` (light/dark/system); core palette in `theme/palette.ts`. **Auth flow** layers a richer palette in `theme/authTheme.ts` (`useAuthTheme()`) |
 | Server state | TanStack React Query v5 |
 | HTTP | Axios (`src/api/client.ts`, injects JWT, clears auth on 401) |
 | Backend | Node 24, Express 4, TypeScript |
@@ -80,6 +84,14 @@ Tint bg `#dbeafe`, pressed/active text `#1d4ed8`, on-primary text `#ffffff`.
 > React Navigation headers, the tab bar, and the status bar follow the theme too
 > (a `Theme` is passed to `NavigationContainer` in `RootNavigator`). When adding UI,
 > use `useTheme()` + a palette token; never hardcode a hex.
+
+**Auth flow palette (premium layer)** — the authentication screens use a richer,
+more expressive system in `src/theme/authTheme.ts` (`useAuthTheme()` → `{ isDark, c }`),
+**separate from the core app tokens** so the rest of the app stays calm: primary
+`#3B82F6` · secondary `#8B5CF6` · accent `#06B6D4` · success `#10B981`; animated
+gradient bg (dark `#0F172A→#1E293B`, light `#EEF2FF→#FFFFFF`); glass surfaces
+(`glassBg`/`glassBorder`/`glassHighlight`) + primary glow. Reuse `c.*` for any new
+auth UI; reuse `useTheme()` tokens everywhere else.
 
 **Status badges** — Verified bg `#dcfce7` / text `#166534`; Unverified bg `#fef9c3` / text `#854d0e`.
 
@@ -126,10 +138,46 @@ Each category also has an emoji icon (no icon library is used — emoji only).
 
 ## 6. Implemented features
 
-- **Auth**: register, login, email verification, forgot/reset password, JWT, `GET /me`.
+- **Auth (premium UI)**: full glassmorphism + animated-gradient flow —
+  **Splash → Welcome → Login → Register → ForgotPassword → ResetPassword → VerifyEmail**
+  (`screens/auth/*`). Splash is a launch gate in `RootNavigator` (min ~1.7s); the rest
+  live in `AuthNavigator` (headerless, `Welcome` initial). Built from a reusable kit:
+  `AuthLayout`/`AuthHeader` (`components/auth`), `GlassCard` (`components/cards`),
+  `FloatingLabelInput`/`PasswordStrength`/`Checkbox` (`components/inputs`),
+  `GradientButton`/`GlassButton`/`SocialButton` (`components/buttons`),
+  `AnimatedBackground`/`SuccessCheck`/`PressableScale` (`components/animations`), and an
+  SVG icon set + `LogoMark` (`components/icons`). Reanimated 60 FPS micro-interactions
+  (floating-label focus, press-scale, glow pulse, stroke-draw success, staggered entrances).
+  Backend logic preserved (`useLogin/useRegister/useForgot/useReset/useVerifyEmail`).
+  Remember-me persists the email (`useRememberedEmail`). **Social buttons are UI-only**
+  (no OAuth backend yet — they show a "coming soon" alert). Register routes to VerifyEmail.
+- **Onboarding (first launch)**: 4-page glassmorphism carousel
+  (`screens/onboarding/OnboardingScreen.tsx`) — Welcome · Track expenses automatically ·
+  Smart budgeting · AI predictions. Animated SVG illustrations + floating elements
+  (`components/onboarding/{illustrations,FloatingElement,ProgressDots}`), horizontal paging
+  with **parallax** + fade/scale page transitions (`useAnimatedScrollHandler` + `scrollX`),
+  expanding progress dots, **Skip**, and a **Get Started** CTA. Shown once, gated by
+  `onboardingStore` (persisted `hasOnboarded`); `RootNavigator` order is
+  splash → onboarding (if not authed & not onboarded) → auth → app. Reuses the auth
+  design system (`useAuthTheme`, `AnimatedBackground`, `GradientButton`).
 - **Profile**: view/update profile, change password, avatar upload (multer), **Settings**
   screen (`screens/SettingsScreen.tsx`) housing the SMS auto-capture toggle + about info.
 - **Transactions**: CRUD, history (paginated), search (note), filter (type/category/date/amount), `/summary`.
+  The **Add** tab (`screens/transactions/AddTransactionScreen.tsx`) is a premium **glass**
+  form (auth design system) — hero `AmountField`, `CategoryChips`, Merchant + Notes, a
+  `DateField` (quick chips + native date picker), expense/income toggle (honours the
+  dashboard quick-action preset `type`), and a `SuccessCheck` overlay on save. **Merchant
+  + Notes are combined into the single `note`** (`merchant — notes`) since there's no
+  merchant column. Reusable pieces in `components/transactions/*`. Edit still uses the
+  core-themed `TransactionForm`.
+  The **history** screen (`TransactionListScreen`) is also premium **glass** (headerless
+  in `TransactionsNavigator` — renders its own glass header w/ the Import action): search
+  (icon + clear), type segmented, **date-range selector** (All/7d/30d/Month/Custom →
+  native picker `from`/`to`), category chips; list of `SwipeableTransactionRow`
+  (`react-native-gesture-handler` `ReanimatedSwipeable`) — **swipe right = Edit, swipe
+  left = Delete**, tap = expand details; staggered entrance + `LinearTransition` layout,
+  skeleton loaders, themed pull-to-refresh, beautiful empty state. Rows use a translucent
+  glass surface (not per-row `BlurView`) for 60 FPS. The old `TransactionItem` is parked.
 - **SMS import (Android)**: parse MTN MoMo / Telecel Cash / AirtelTigo Cash / bank
   alerts → transactions (`src/services/sms/*`; Transactions → Import + Home shortcut).
   Manual import **and** opt-in **auto-capture** (foreground polling via
@@ -137,13 +185,39 @@ Each category also has an emoji icon (no icon library is used — emoji only).
   reading SMS needs a **dev build** + `READ_SMS` (no-op/guarded in Expo Go). See
   `docs/SMS_IMPORT.md`.
 - **Budgets**: overall + per-category monthly budgets (CRUD) with spent/percent/status
-  calc (`/budgets`); Budgets tab with month switcher, `ProgressBar` + `BudgetCard`,
-  and 80%/100% alert banner.
-- **Dashboard (Home)**: fintech-style, fully **themed (dark/light)** + animated
-  (`FadeInView`). Summary (income/expense/balance), expense-category **pie**, monthly
-  income-vs-expense **bar**, daily-spend **line** (`components/charts/*`,
-  gifted-charts), and recent transactions. Powered by `GET /transactions/stats`
-  (`services/stats.service.ts`); appearance toggle in Settings.
+  calc (`/budgets`). The Budgets tab (`BudgetOverviewScreen`) is premium **glass**
+  (headerless — glass header + month switcher): a **monthly budget card** with an
+  animated **`CircularProgress`** ring (SVG draw-on-mount) + status pill + a **`Celebration`**
+  particle burst when on-track, **budget alert** banners (≥80% / exceeded), and
+  per-category **`BudgetCategoryCard`**s with animated fill bars. `components/budgets/*`
+  (+ `budgetStatus` helper: ok→success, warning→amber, exceeded→danger). `BudgetForm`
+  (set/edit) stays core-themed; old `BudgetCard`/`ProgressBar` are parked.
+- **Dashboard (Home)**: premium **glassmorphism, dark-first** home (Revolut/Coinbase/
+  Wealthsimple vibe) — uniquely uses the **auth design system** (`useAuthTheme` +
+  `AnimatedBackground` gradient/blobs) rather than the core app theme. Sections
+  (`components/dashboard/*`): (1) header (avatar + greeting + glass notification bell),
+  (2) **balance card** (`BalanceHero` — frosted `GlassCard`, count-up total balance via
+  `AnimatedCounter`, this-month income/expense, embedded **smooth area sparkline** of
+  daily spend via gifted-charts), (3) **quick actions** (`QuickActions` glass tiles →
+  Add Expense/Income deep-link the Add tab w/ preset `type`, Set Budget → Budgets),
+  (4) **Spending Breakdown** — `ExpensePieCard` reused in a new `embedded` mode
+  (renders bare, no inner `Card`/title, transparent donut center) inside a `GlassCard`
+  titled "Spending Breakdown"; pie draw + staggered legend fade-in + pressable legend
+  rows (memoized), (5) **AI insight** (`AIInsightCard` — projection + top category +
+  savings; heuristic, can later read `/predictions`), (6) **recent transactions** glass
+  list (+ beautiful empty state, skeleton loaders). `GlassCard` entrance springs +
+  `PressableScale` micro-interactions. Powered by `GET /transactions/stats`
+  (`services/stats.service.ts`). `ExpensePieCard` is shared with Admin/Analytics — its
+  default (non-embedded) rendering is unchanged. `MonthlyBarCard`, `DailyLineCard`,
+  `CategoryBreakdown` remain parked (available to re-add). Other tabs still use the core
+  theme — migrate them to glass next.
+- **Analytics**: glass **Analytics tab** (`screens/AnalyticsScreen.tsx`) — three sections
+  mapped to three charts: **Income vs Expense** (dual **line** chart over 6 months w/
+  interactive `pointerConfig` tooltip + totals + animated `ProportionBar`), **Category
+  spending** (**pie** via embedded `ExpensePieCard`), **Monthly comparison** (**bar**
+  chart of monthly spend w/ tap `renderTooltip`). All gifted-charts, Expo Go-safe (no
+  native gradient props); chart draw animations + `GlassCard` entrances; loading
+  skeletons + empty state. Powered by `GET /transactions/stats`. `components/analytics/*`.
 - **ML predictions**: `ml-service/` (FastAPI) trains LinearRegression on the user's
   daily spending and forecasts next 7/30 days + per-category, returning MAE/RMSE/R².
   `services/prediction.service.ts` forwards the user's transactions, then **stores the
@@ -162,7 +236,7 @@ Each category also has an emoji icon (no icon library is used — emoji only).
   tiles, platform expense pie (reuses `ExpensePieCard`), and a users list. The tab only
   renders when `user.role === 'ADMIN'` (`api/admin.api.ts` + `hooks/useAdmin.ts`).
   See `docs/ADMIN.md`.
-- **App shell**: tabs **Home (dashboard) · Transactions · Add · Budgets · Profile**
+- **App shell**: tabs **Home (dashboard) · Transactions · Add · Budgets · Analytics · Profile**
   (+ **Admin** for admins only); auth stack; dev "Skip login" button + optional dev auto-login.
 
 ## 7. Commands (run from repo root `Final Year Project/`)

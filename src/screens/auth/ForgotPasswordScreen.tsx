@@ -2,23 +2,29 @@ import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '@/components/Button';
-import { FadeInView } from '@/components/FadeInView';
-import { ScreenContainer } from '@/components/ScreenContainer';
-import { TextField } from '@/components/TextField';
+import { AuthHeader } from '@/components/auth/AuthHeader';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { GradientButton } from '@/components/buttons/GradientButton';
+import { GlassButton } from '@/components/buttons/GlassButton';
+import { GlassCard } from '@/components/cards/GlassCard';
+import { ArrowRightIcon, MailIcon } from '@/components/icons';
+import { FloatingLabelInput } from '@/components/inputs/FloatingLabelInput';
 import { useForgotPassword } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
+import { useAuthTheme } from '@/theme/authTheme';
+import { fontFamily } from '@/theme/typography';
 import type { AuthStackParamList } from '@/navigation/types';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
-export function ForgotPasswordScreen({ navigation }: Props) {
-  const { colors } = useTheme();
-  const [email, setEmail] = useState('');
-  const forgotPassword = useForgotPassword();
+const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
-  const canSubmit = email.trim().length > 0;
+export function ForgotPasswordScreen({ navigation }: Props) {
+  const { c } = useAuthTheme();
+  const forgotPassword = useForgotPassword();
+  const [email, setEmail] = useState('');
+
+  const emailValid = isValidEmail(email);
 
   const handleSubmit = () => {
     forgotPassword.mutate(
@@ -35,50 +41,44 @@ export function ForgotPasswordScreen({ navigation }: Props) {
   };
 
   return (
-    <ScreenContainer>
-      <FadeInView style={styles.form}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Forgot password</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Enter your email and we&apos;ll send you a code to reset your password.
+    <AuthLayout onBack={() => navigation.goBack()}>
+      <AuthHeader compact tagline="Reset your password" />
+
+      <GlassCard delay={120}>
+        <View style={styles.form}>
+          <Text style={[styles.lead, { color: c.textMuted }]}>
+            Enter the email tied to your account and we&apos;ll send a secure code to reset your
+            password.
           </Text>
+          <FloatingLabelInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            icon={<MailIcon color={c.inputIcon} />}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            textContentType="emailAddress"
+            success={emailValid}
+          />
+          <GradientButton
+            title="Send reset code"
+            onPress={handleSubmit}
+            loading={forgotPassword.isPending}
+            disabled={!emailValid}
+            icon={<ArrowRightIcon size={20} color={c.onPrimary} />}
+          />
+          <GlassButton
+            title="I already have a code"
+            onPress={() => navigation.navigate('ResetPassword', {})}
+          />
         </View>
-
-        <TextField
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          textContentType="emailAddress"
-        />
-
-        <Button
-          title="Send reset code"
-          onPress={handleSubmit}
-          loading={forgotPassword.isPending}
-          disabled={!canSubmit}
-        />
-        <Button
-          title="I already have a code"
-          variant="ghost"
-          onPress={() => navigation.navigate('ResetPassword', {})}
-        />
-        <Button
-          title="Back to sign in"
-          variant="ghost"
-          onPress={() => navigation.navigate('Login')}
-        />
-      </FadeInView>
-    </ScreenContainer>
+      </GlassCard>
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
   form: { gap: 16 },
-  header: { gap: 6, marginBottom: 8 },
-  title: { fontSize: 28, fontWeight: '700' },
-  subtitle: { fontSize: 15 },
+  lead: { fontSize: 15, lineHeight: 22, fontFamily: fontFamily.regular },
 });
