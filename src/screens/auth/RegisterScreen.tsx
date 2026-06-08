@@ -1,115 +1,127 @@
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { Button } from '@/components/Button';
-import { FadeInView } from '@/components/FadeInView';
-import { ScreenContainer } from '@/components/ScreenContainer';
-import { TextField } from '@/components/TextField';
+import { AuthHeader } from '@/components/auth/AuthHeader';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { GradientButton } from '@/components/buttons/GradientButton';
+import { GlassCard } from '@/components/cards/GlassCard';
+import { LockIcon, MailIcon, UserIcon } from '@/components/icons';
+import { FloatingLabelInput } from '@/components/inputs/FloatingLabelInput';
+import { PasswordStrength } from '@/components/inputs/PasswordStrength';
 import { useRegister } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
+import { useAuthTheme } from '@/theme/authTheme';
+import { fontFamily } from '@/theme/typography';
 import type { AuthStackParamList } from '@/navigation/types';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
+const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+
 export function RegisterScreen({ navigation }: Props) {
-  const { colors } = useTheme();
+  const { c } = useAuthTheme();
+  const register = useRegister();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const register = useRegister();
+  const [confirm, setConfirm] = useState('');
 
-  const passwordsMatch = password === confirmPassword;
-  const canSubmit =
-    name.trim().length >= 2 && email.trim().length > 0 && password.length >= 8 && passwordsMatch;
+  const emailValid = isValidEmail(email);
+  const emailError = email.length > 0 && !emailValid ? 'Enter a valid email address' : null;
+  const passwordsMatch = password === confirm;
+  const confirmError = confirm.length > 0 && !passwordsMatch ? 'Passwords do not match' : null;
+
+  const canSubmit = name.trim().length >= 2 && emailValid && password.length >= 8 && passwordsMatch;
 
   const handleSubmit = () => {
     register.mutate(
       { name: name.trim(), email: email.trim(), password },
       {
-        onSuccess: (data) =>
-          Alert.alert('Almost there', data.message, [
-            { text: 'OK', onPress: () => navigation.navigate('Login') },
-          ]),
+        onSuccess: () => navigation.navigate('VerifyEmail', { email: email.trim() }),
         onError: (error) => Alert.alert('Registration failed', getErrorMessage(error)),
       },
     );
   };
 
   return (
-    <ScreenContainer>
-      <FadeInView style={styles.form}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Create account</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Start tracking your expenses with ExpenSee
-          </Text>
+    <AuthLayout onBack={() => navigation.goBack()}>
+      <AuthHeader compact tagline="Create your account in seconds" />
+
+      <GlassCard delay={120}>
+        <View style={styles.form}>
+          <FloatingLabelInput
+            label="Full name"
+            value={name}
+            onChangeText={setName}
+            icon={<UserIcon color={c.inputIcon} />}
+            autoCapitalize="words"
+            autoComplete="name"
+            success={name.trim().length >= 2}
+          />
+          <FloatingLabelInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            icon={<MailIcon color={c.inputIcon} />}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            textContentType="emailAddress"
+            error={emailError}
+            success={emailValid}
+          />
+          <FloatingLabelInput
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            icon={<LockIcon color={c.inputIcon} />}
+            secure
+            autoCapitalize="none"
+            textContentType="newPassword"
+          />
+          <PasswordStrength password={password} />
+          <FloatingLabelInput
+            label="Confirm password"
+            value={confirm}
+            onChangeText={setConfirm}
+            icon={<LockIcon color={c.inputIcon} />}
+            secure
+            autoCapitalize="none"
+            error={confirmError}
+            success={confirm.length > 0 && passwordsMatch}
+          />
+
+          <GradientButton
+            title="Create account"
+            onPress={handleSubmit}
+            loading={register.isPending}
+            disabled={!canSubmit}
+          />
         </View>
+      </GlassCard>
 
-        <TextField
-          label="Name"
-          value={name}
-          onChangeText={setName}
-          placeholder="Jane Doe"
-          autoCapitalize="words"
-          autoComplete="name"
-        />
-        <TextField
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          textContentType="emailAddress"
-        />
-        <TextField
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          placeholder="At least 8 characters"
-          secureTextEntry
-          autoCapitalize="none"
-          textContentType="newPassword"
-        />
-        <TextField
-          label="Confirm password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Re-enter your password"
-          secureTextEntry
-          autoCapitalize="none"
-          error={
-            confirmPassword.length > 0 && !passwordsMatch ? 'Passwords do not match' : undefined
-          }
-        />
-
-        <Button
-          title="Create account"
-          onPress={handleSubmit}
-          loading={register.isPending}
-          disabled={!canSubmit}
-        />
-
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textMuted }]}>
-            Already have an account?
-          </Text>
-          <Button title="Sign in" variant="ghost" onPress={() => navigation.navigate('Login')} />
-        </View>
-      </FadeInView>
-    </ScreenContainer>
+      <Animated.View entering={FadeIn.duration(500).delay(360)} style={styles.bottom}>
+        <Text style={[styles.bottomText, { color: c.textMuted }]}>Already have an account?</Text>
+        <Pressable onPress={() => navigation.navigate('Login')} hitSlop={8}>
+          <Text style={[styles.link, { color: c.primary }]}>Sign in</Text>
+        </Pressable>
+      </Animated.View>
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
   form: { gap: 16 },
-  header: { gap: 6, marginBottom: 8 },
-  title: { fontSize: 28, fontWeight: '700' },
-  subtitle: { fontSize: 15 },
-  footer: { alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  footerText: { fontSize: 14 },
+  bottom: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 22,
+  },
+  bottomText: { fontSize: 14, fontFamily: fontFamily.regular },
+  link: { fontSize: 14, fontFamily: fontFamily.semibold },
 });

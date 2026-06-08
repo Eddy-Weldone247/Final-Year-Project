@@ -1,10 +1,13 @@
 import { DarkTheme, DefaultTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { useDevAutoLogin } from '@/hooks/useDevAutoLogin';
 import { useTheme } from '@/hooks/useTheme';
+import { OnboardingScreen } from '@/screens/onboarding/OnboardingScreen';
+import { SplashScreen } from '@/screens/auth/SplashScreen';
 import { useAuthStore } from '@/store/authStore';
+import { useOnboardingStore } from '@/store/onboardingStore';
 
 import { AppNavigator } from './AppNavigator';
 import { AuthNavigator } from './AuthNavigator';
@@ -12,14 +15,25 @@ import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-/** Switches between the auth flow and the main app based on auth state. */
+const MIN_SPLASH_MS = 1700;
+
+/** Switches between onboarding, the auth flow, and the main app. */
 export function RootNavigator() {
   const { colors, isDark } = useTheme();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const hasOnboarded = useOnboardingStore((state) => state.hasOnboarded);
+  const onboardingHydrated = useOnboardingStore((state) => state.hasHydrated);
 
   // DEV ONLY: skip the auth form by auto-logging into the demo account.
   const autoLoggingIn = useDevAutoLogin();
+
+  // Keep the branded splash on screen for a minimum, delightful moment.
+  const [minElapsed, setMinElapsed] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setMinElapsed(true), MIN_SPLASH_MS);
+    return () => clearTimeout(id);
+  }, []);
 
   // Drives default header/tab-bar/screen backgrounds across all navigators.
   const navTheme: Theme = {
@@ -35,13 +49,14 @@ export function RootNavigator() {
     },
   };
 
-  // Avoid flashing the login screen before the session is restored / auto-login resolves.
-  if (!hasHydrated || autoLoggingIn) {
-    return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+  // Wait for both persisted stores and the minimum splash window.
+  if (!hasHydrated || !onboardingHydrated || autoLoggingIn || !minElapsed) {
+    return <SplashScreen />;
+  }
+
+  // First launch: show onboarding before the auth flow.
+  if (!isAuthenticated && !hasOnboarded) {
+    return <OnboardingScreen />;
   }
 
   return (
@@ -56,7 +71,3 @@ export function RootNavigator() {
     </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  loading: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-});

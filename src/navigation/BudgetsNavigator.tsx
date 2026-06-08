@@ -13,7 +13,7 @@ export function BudgetsNavigator() {
       <Stack.Screen
         name="BudgetOverview"
         component={BudgetOverviewScreen}
-        options={{ title: 'Budgets' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen name="BudgetForm" component={BudgetFormScreen} options={{ title: 'Budget' }} />
     </Stack.Navigator>

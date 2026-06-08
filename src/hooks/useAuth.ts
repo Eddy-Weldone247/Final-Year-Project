@@ -24,6 +24,10 @@ export function useResetPassword() {
   return useMutation({ mutationFn: authApi.resetPassword });
 }
 
+export function useVerifyEmail() {
+  return useMutation({ mutationFn: authApi.verifyEmail });
+}
+
 /** Clears the persisted session. */
 export function useLogout() {
   return useAuthStore((state) => state.clearAuth);

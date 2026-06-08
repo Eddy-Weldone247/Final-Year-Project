@@ -13,7 +13,9 @@
     },
     "android": {
       "package": "com.expensee.app",
-      "permissions": ["android.permission.READ_SMS"]
+      "permissions": [
+        "android.permission.READ_SMS"
+      ]
     },
     "web": {
       "bundler": "metro"
@@ -28,7 +30,9 @@
         {
           "photosPermission": "Allow ExpenSee to access your photos to set a profile picture."
         }
-      ]
+      ],
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

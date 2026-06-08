@@ -1,99 +1,125 @@
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { Button } from '@/components/Button';
-import { FadeInView } from '@/components/FadeInView';
-import { ScreenContainer } from '@/components/ScreenContainer';
-import { TextField } from '@/components/TextField';
+import { SuccessCheck } from '@/components/animations/SuccessCheck';
+import { AuthHeader } from '@/components/auth/AuthHeader';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { GradientButton } from '@/components/buttons/GradientButton';
+import { GlassCard } from '@/components/cards/GlassCard';
+import { ArrowRightIcon, LockIcon, SparkleIcon } from '@/components/icons';
+import { FloatingLabelInput } from '@/components/inputs/FloatingLabelInput';
+import { PasswordStrength } from '@/components/inputs/PasswordStrength';
 import { useResetPassword } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
+import { useAuthTheme } from '@/theme/authTheme';
+import { fontFamily } from '@/theme/typography';
 import type { AuthStackParamList } from '@/navigation/types';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
 
 export function ResetPasswordScreen({ navigation, route }: Props) {
-  const { colors } = useTheme();
-  const [token, setToken] = useState(route.params?.token ?? '');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const { c } = useAuthTheme();
   const resetPassword = useResetPassword();
 
-  const passwordsMatch = password === confirmPassword;
+  const [token, setToken] = useState(route.params?.token ?? '');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [done, setDone] = useState(false);
+
+  const passwordsMatch = password === confirm;
+  const confirmError = confirm.length > 0 && !passwordsMatch ? 'Passwords do not match' : null;
   const canSubmit = token.trim().length > 0 && password.length >= 8 && passwordsMatch;
 
   const handleSubmit = () => {
     resetPassword.mutate(
       { token: token.trim(), password },
       {
-        onSuccess: (data) =>
-          Alert.alert('Success', data.message, [
-            { text: 'Sign in', onPress: () => navigation.navigate('Login') },
-          ]),
+        onSuccess: () => setDone(true),
         onError: (error) => Alert.alert('Reset failed', getErrorMessage(error)),
       },
     );
   };
 
-  return (
-    <ScreenContainer>
-      <FadeInView style={styles.form}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Reset password</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-            Enter the code from your email and a new password.
+  if (done) {
+    return (
+      <AuthLayout scroll={false}>
+        <Animated.View entering={FadeIn.duration(400)} style={styles.successWrap}>
+          <SuccessCheck size={104} />
+          <Text style={[styles.successTitle, { color: c.text }]}>Password updated</Text>
+          <Text style={[styles.successSub, { color: c.textMuted }]}>
+            Your password has been reset. Sign in with your new credentials.
           </Text>
+          <View style={styles.successAction}>
+            <GradientButton
+              title="Back to sign in"
+              onPress={() => navigation.navigate('Login')}
+              icon={<ArrowRightIcon size={20} color={c.onPrimary} />}
+            />
+          </View>
+        </Animated.View>
+      </AuthLayout>
+    );
+  }
+
+  return (
+    <AuthLayout onBack={() => navigation.goBack()}>
+      <AuthHeader compact tagline="Set a new password" />
+
+      <GlassCard delay={120}>
+        <View style={styles.form}>
+          <FloatingLabelInput
+            label="Reset code"
+            value={token}
+            onChangeText={setToken}
+            icon={<SparkleIcon color={c.inputIcon} size={20} />}
+            autoCapitalize="none"
+            autoCorrect={false}
+            success={token.trim().length > 0}
+          />
+          <FloatingLabelInput
+            label="New password"
+            value={password}
+            onChangeText={setPassword}
+            icon={<LockIcon color={c.inputIcon} />}
+            secure
+            autoCapitalize="none"
+            textContentType="newPassword"
+          />
+          <PasswordStrength password={password} />
+          <FloatingLabelInput
+            label="Confirm password"
+            value={confirm}
+            onChangeText={setConfirm}
+            icon={<LockIcon color={c.inputIcon} />}
+            secure
+            autoCapitalize="none"
+            error={confirmError}
+            success={confirm.length > 0 && passwordsMatch}
+          />
+          <GradientButton
+            title="Reset password"
+            onPress={handleSubmit}
+            loading={resetPassword.isPending}
+            disabled={!canSubmit}
+          />
         </View>
-
-        <TextField
-          label="Reset code"
-          value={token}
-          onChangeText={setToken}
-          placeholder="Paste the code from your email"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TextField
-          label="New password"
-          value={password}
-          onChangeText={setPassword}
-          placeholder="At least 8 characters"
-          secureTextEntry
-          autoCapitalize="none"
-          textContentType="newPassword"
-        />
-        <TextField
-          label="Confirm password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Re-enter your password"
-          secureTextEntry
-          autoCapitalize="none"
-          error={
-            confirmPassword.length > 0 && !passwordsMatch ? 'Passwords do not match' : undefined
-          }
-        />
-
-        <Button
-          title="Reset password"
-          onPress={handleSubmit}
-          loading={resetPassword.isPending}
-          disabled={!canSubmit}
-        />
-        <Button
-          title="Back to sign in"
-          variant="ghost"
-          onPress={() => navigation.navigate('Login')}
-        />
-      </FadeInView>
-    </ScreenContainer>
+      </GlassCard>
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
   form: { gap: 16 },
-  header: { gap: 6, marginBottom: 8 },
-  title: { fontSize: 28, fontWeight: '700' },
-  subtitle: { fontSize: 15 },
+  successWrap: { alignItems: 'center', gap: 14, paddingHorizontal: 8 },
+  successTitle: { fontSize: 26, fontFamily: fontFamily.bold, marginTop: 8 },
+  successSub: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: fontFamily.regular,
+    textAlign: 'center',
+    maxWidth: 300,
+  },
+  successAction: { alignSelf: 'stretch', marginTop: 18 },
 });
