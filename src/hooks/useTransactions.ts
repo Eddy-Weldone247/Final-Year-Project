@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import * as transactionApi from '@/api/transaction.api';
+import { onTransactionCreated } from '@/services/notifications';
 import type {
   CreateTransactionPayload,
   TransactionFilters,
@@ -43,7 +44,10 @@ export function useCreateTransaction() {
   const invalidate = useInvalidateTransactions();
   return useMutation({
     mutationFn: (payload: CreateTransactionPayload) => transactionApi.createTransaction(payload),
-    onSuccess: invalidate,
+    onSuccess: (transaction) => {
+      invalidate();
+      onTransactionCreated(transaction);
+    },
   });
 }
 

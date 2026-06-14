@@ -6,7 +6,30 @@
 > this file** (design tokens, structure, commands, and the _Implemented features_
 > / _Last updated_ lines).
 
-_Last updated: 2026-06-06 (New **Analytics** tab (glass) — Income-vs-Expense dual **line** chart w/ interactive pointer tooltip + animated `ProportionBar`, category **pie** (reuses `ExpensePieCard` embedded), monthly **bar** chart w/ tap tooltip; chart draw animations, loading/empty states. `components/analytics/*`; wired as a bottom tab in `AppNavigator`)_
+_Last updated: 2026-06-13 (**Edit Transaction → glass**: `EditTransactionScreen` migrated to the
+premium glass design system (headerless `AuthLayout` + back pill), mirroring the Add screen —
+shared animated `TypeToggle`, hero `AmountField`, glass details card, `GradientButton` +
+`SuccessCheck` overlay, frosted danger delete. Keyed inner form re-seeds per transaction; route
+is headerless.)
+(2026-06-13 — **Budget set/edit → glass**: `BudgetFormScreen` migrated to the
+premium glass design system (headerless `AuthLayout` + back pill) — frosted overview card with
+`CircularProgress` ring + stat breakdown (live `useBudgets`), AI insight, glass `$` currency
+input, `GradientButton` + `SuccessCheck` success overlay, empty state. `BudgetForm` route is now
+headerless.)
+(2026-06-13 — **Local notifications**: `expo-notifications` — money-received
+alerts (income, manual + SMS auto-capture), budget-threshold alerts (deduped per month via
+`notifiedBudgetsStore`), and scheduled daily-reminder + weekly-summary. Service in
+`services/notifications/*`, prefs in `settingsStore`, scheduling via `<NotificationManager/>`,
+toggles in a new Settings **NOTIFICATIONS** section. Expo Go-safe (local only — no push/FCM).)
+(2026-06-13 — **Design tokens + primitive polish**: new `theme/spacing.ts`
+(`spacing`/`radius`/`sizing`/`shadow` scale); `typography` presets gained tuned line-heights
++ a `title` preset; core primitives `Button`/`TextField`/`Card`/`ScreenContainer` refined to
+use Inter + tokens + soft shadows (Button tints its shadow; TextField has a focus highlight).)
+(2026-06-13 — **Auth simplified**: email verification removed — `registerUser`
+creates accounts pre-verified and `register` returns a JWT, so sign-up is **auto-login**
+straight to the main screen. VerifyEmail screen deleted. Password reset still needs the
+`SMTP_*` keys in `backend/.env` to email real links.)
+(2026-06-07 — **Profile stack** redesigned to glass — ProfileHome (glass profile card + action rows + log out), EditProfile & ChangePassword (glass `FloatingLabelInput` forms + `PasswordStrength`), Settings (glass appearance segmented + glass SMS toggle + about); all headerless via `AuthLayout` (added `center` prop) w/ glass back buttons. New Settings/LogOut/ChevronRight icons)_
 
 ---
 
@@ -49,6 +72,7 @@ There is no longer an `expensee/` wrapper folder.
 | Validation | Zod (backend) |
 | Uploads | multer (avatars → `backend/uploads`, served at `/uploads`) |
 | Android SMS | `react-native-get-sms-android` + `READ_SMS` (dev build only) |
+| Notifications | `expo-notifications` — **local only** (Expo Go-safe; no push/FCM). Foreground handler + Android channel set at launch |
 | Dev build | EAS (`eas.json` `development` profile). `expo-dev-client` is **not** installed by default (so `expo start` defaults to Expo Go); reinstall it (`npx expo install expo-dev-client`) when building the SMS dev build. |
 
 ## 3. Design tokens — USE THESE, don't invent new colors
@@ -100,11 +124,20 @@ Food `#f97316` · Transport `#3b82f6` · Shopping `#ec4899` · Entertainment `#8
 Utilities `#eab308` · Healthcare `#ef4444` · Education `#14b8a6` · Others `#6b7280`.
 Each category also has an emoji icon (no icon library is used — emoji only).
 
-**Shape & type**
-- Radius: inputs/buttons `10`, cards `12`, chips/pills `16–20`, avatars/icon-circles = half of size.
-- Control height: buttons & inputs `50`.
-- Font sizes: screen title `28/700`, section `18/700`, body `15–16`, label `14/500`, small `12–13`.
-- Spacing: screen padding `16–24`, gaps `8–16`.
+**Shape & type** — layout tokens now live in `src/theme/spacing.ts`; **prefer these over
+ad-hoc numbers** so the app keeps a consistent rhythm.
+- `spacing` (4px scale): `xs 4 · sm 8 · md 12 · lg 16 · xl 20 · xxl 24 · xxxl 32`.
+- `radius`: `sm 8 · md 12 · lg 16 · xl 20 · pill 999` — inputs/buttons `md`, cards `lg`,
+  chips/pills `xl`/`pill`, avatars/icon-circles = half of size. (Glass surfaces use their
+  own larger radii, e.g. `GlassCard` 28.)
+- `sizing.control` `52` — standard height for buttons & inputs.
+- `shadow` presets `sm/md/lg` (iOS shadow + Android elevation): pair with a themed
+  `shadowColor`/`backgroundColor`. Filled `Button`s tint the shadow to their own color.
+- Type: presets in `theme/typography.ts` (`typography.*` — now with tuned `lineHeight`s +
+  a `title` 22/700 preset). Screen title `28–32/700`, section `18/600`, body `16`, label
+  `14/500`, small `12`. **All shared primitives use the Inter `fontFamily`** (never raw
+  `fontWeight`).
+- Spacing in practice: screen padding `xxl`, gaps `sm–lg`.
 - Currency: USD-style via `formatCurrency` (`$1,234.56`); never use `Intl` (Hermes-unsafe).
 
 ## 4. Conventions
@@ -150,7 +183,14 @@ Each category also has an emoji icon (no icon library is used — emoji only).
   (floating-label focus, press-scale, glow pulse, stroke-draw success, staggered entrances).
   Backend logic preserved (`useLogin/useRegister/useForgot/useReset/useVerifyEmail`).
   Remember-me persists the email (`useRememberedEmail`). **Social buttons are UI-only**
-  (no OAuth backend yet — they show a "coming soon" alert). Register routes to VerifyEmail.
+  (no OAuth backend yet — they show a "coming soon" alert).
+  **No email verification**: registration is **auto-login** — `registerUser` creates the
+  account already verified (`isEmailVerified: true`) and `register` returns `{ user, token }`,
+  so the app stores the session (`useRegister` → `setAuth`) and lands straight on the main
+  screen. There is no VerifyEmail screen. (The backend `verify-email` endpoints + browser
+  link handler still exist but are no longer part of any flow.) Password **reset** still uses
+  a token; with `SMTP_*` empty in `backend/.env`, `email.service` just logs the reset link to
+  the console (fill the `SMTP_*` keys to send real reset emails).
 - **Onboarding (first launch)**: 4-page glassmorphism carousel
   (`screens/onboarding/OnboardingScreen.tsx`) — Welcome · Track expenses automatically ·
   Smart budgeting · AI predictions. Animated SVG illustrations + floating elements
@@ -160,38 +200,75 @@ Each category also has an emoji icon (no icon library is used — emoji only).
   `onboardingStore` (persisted `hasOnboarded`); `RootNavigator` order is
   splash → onboarding (if not authed & not onboarded) → auth → app. Reuses the auth
   design system (`useAuthTheme`, `AnimatedBackground`, `GradientButton`).
-- **Profile**: view/update profile, change password, avatar upload (multer), **Settings**
-  screen (`screens/SettingsScreen.tsx`) housing the SMS auto-capture toggle + about info.
+- **Profile**: the whole Profile stack is premium **glass** (headerless `ProfileNavigator`;
+  each screen uses `AuthLayout` — now with a `center` prop — + glass back button):
+  **ProfileHome** (glass profile card: avatar w/ edit badge, name/email, verified pill +
+  glass action rows → Edit/Change password/Settings + Log out), **EditProfile** &
+  **ChangePassword** (glass `GlassCard` forms w/ `FloatingLabelInput`, `PasswordStrength`,
+  `GradientButton`/`GlassButton`), **Settings** (`screens/SettingsScreen.tsx` — glass
+  appearance segmented (Light/Dark/System), a **glass SMS auto-capture toggle** reusing
+  `settingsStore` + `smsReader`, and About). Avatar upload (multer) preserved. The shared
+  core `AutoCaptureToggle` stays for the SMS Import screen. New icons: Settings/LogOut/ChevronRight.
 - **Transactions**: CRUD, history (paginated), search (note), filter (type/category/date/amount), `/summary`.
   The **Add** tab (`screens/transactions/AddTransactionScreen.tsx`) is a premium **glass**
   form (auth design system) — hero `AmountField`, `CategoryChips`, Merchant + Notes, a
   `DateField` (quick chips + native date picker), expense/income toggle (honours the
   dashboard quick-action preset `type`), and a `SuccessCheck` overlay on save. **Merchant
   + Notes are combined into the single `note`** (`merchant — notes`) since there's no
-  merchant column. Reusable pieces in `components/transactions/*`. Edit still uses the
-  core-themed `TransactionForm`.
+  merchant column. Reusable pieces in `components/transactions/*` (incl. the shared glass
+  `TypeToggle` — a segmented control with a spring-animated sliding indicator). **Edit**
+  (`EditTransactionScreen`) is now the same premium **glass** as Add — headerless (`AuthLayout`
+  shell + glass back pill), mirroring the Add form (`TypeToggle`, hero `AmountField`, a details
+  `GlassCard` with `CategoryChips` + `FloatingLabelInput` note + `DateField`, a `GradientButton`
+  save with a `SuccessCheck` overlay, and a frosted **danger delete**). It can also edit the
+  date. The screen renders a keyed inner `EditForm` (`key={transaction.id}`) so fields re-seed
+  when opening a different transaction. The old core `TransactionForm` is parked.
   The **history** screen (`TransactionListScreen`) is also premium **glass** (headerless
   in `TransactionsNavigator` — renders its own glass header w/ the Import action): search
   (icon + clear), type segmented, **date-range selector** (All/7d/30d/Month/Custom →
   native picker `from`/`to`), category chips; list of `SwipeableTransactionRow`
-  (`react-native-gesture-handler` `ReanimatedSwipeable`) — **swipe right = Edit, swipe
-  left = Delete**, tap = expand details; staggered entrance + `LinearTransition` layout,
-  skeleton loaders, themed pull-to-refresh, beautiful empty state. Rows use a translucent
-  glass surface (not per-row `BlurView`) for 60 FPS. The old `TransactionItem` is parked.
+  (`react-native-gesture-handler` `ReanimatedSwipeable`) — **tap = Edit** (consistent with the
+  dashboard's recent list), **swipe right = Edit, swipe left = Delete**; staggered entrance +
+  `LinearTransition` layout, skeleton loaders, themed pull-to-refresh, beautiful empty state.
+  Rows use a translucent glass surface (not per-row `BlurView`) for 60 FPS. The dashboard's
+  **Recent transactions** rows share the same icon/`category · date`/tap-to-edit treatment.
+  `EditTransactionScreen` keys `TransactionForm` by `transaction.id` so it re-syncs when the
+  param changes (fixes a stale-form bug when editing different items via cross-tab nav). The
+  old `TransactionItem` is parked.
 - **SMS import (Android)**: parse MTN MoMo / Telecel Cash / AirtelTigo Cash / bank
   alerts → transactions (`src/services/sms/*`; Transactions → Import + Home shortcut).
   Manual import **and** opt-in **auto-capture** (foreground polling via
   `useSmsAutoCapture` + `settingsStore`, reuses the reader/parser). Parser is pure TS;
   reading SMS needs a **dev build** + `READ_SMS` (no-op/guarded in Expo Go). See
   `docs/SMS_IMPORT.md`.
+- **Notifications (local)**: `expo-notifications`, **local-only** so it works in Expo Go
+  (no push tokens / FCM). Service in `services/notifications/*`: `configureNotifications`
+  (foreground handler + Android channel, called in `App.tsx`), `ensureNotificationPermission`,
+  immediate `notifyMoneyIn`/`notifyBudgetAlert`, and `scheduleDailyReminder`/
+  `scheduleWeeklySummary` (stable identifiers → idempotent). `onTransactionCreated(tx)` runs
+  on every create (manual `useCreateTransaction` **and** SMS auto-capture): **income →
+  money-received alert**; **expense → budget-threshold check** (`runBudgetAlertCheck` fetches
+  the month's budgets, notifies on escalation to warning/exceeded, deduped per
+  month+budget via `notifiedBudgetsStore`). Recurring **daily reminder** (8 PM) + **weekly
+  summary** (Sun 6 PM) are static scheduled notifications synced to settings by the headless
+  `<NotificationManager/>`. Four prefs in `settingsStore` (`notifMoneyIn`/`notifDailyReminder`/
+  `notifBudgetAlerts`/`notifWeeklySummary`, default off) drive the new Settings
+  **NOTIFICATIONS** section (each toggle requests OS permission on enable). Notifications only
+  fire while the app runs/foregrounded; closed-app delivery would need a dev build + server push.
 - **Budgets**: overall + per-category monthly budgets (CRUD) with spent/percent/status
   calc (`/budgets`). The Budgets tab (`BudgetOverviewScreen`) is premium **glass**
   (headerless — glass header + month switcher): a **monthly budget card** with an
   animated **`CircularProgress`** ring (SVG draw-on-mount) + status pill + a **`Celebration`**
   particle burst when on-track, **budget alert** banners (≥80% / exceeded), and
   per-category **`BudgetCategoryCard`**s with animated fill bars. `components/budgets/*`
-  (+ `budgetStatus` helper: ok→success, warning→amber, exceeded→danger). `BudgetForm`
-  (set/edit) stays core-themed; old `BudgetCard`/`ProgressBar` are parked.
+  (+ `budgetStatus` helper: ok→success, warning→amber, exceeded→danger). The **set/edit
+  screen** (`BudgetFormScreen`) is now also premium **glass** (headerless `AuthLayout` shell
+  + glass back pill): a frosted **overview card** (`CircularProgress` ring + Spent%/Remaining%
+  legend + Budget/Spent/Remaining stat row, fed by live `useBudgets(month)` progress), an
+  **AI insight** card (`SparkleIcon`), a glass **currency input** (`FloatingLabelInput` + `$`
+  prefix + focus/success/error), a `GradientButton` set/save action with a `SuccessCheck`
+  success overlay (`Modal`), a subtle glass delete, and a `TargetIcon` **empty state** for new
+  budgets. Old `BudgetCard`/`ProgressBar` and the core `TransactionForm`-era styling are parked.
 - **Dashboard (Home)**: premium **glassmorphism, dark-first** home (Revolut/Coinbase/
   Wealthsimple vibe) — uniquely uses the **auth design system** (`useAuthTheme` +
   `AnimatedBackground` gradient/blobs) rather than the core app theme. Sections

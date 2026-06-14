@@ -6,10 +6,12 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { NotificationManager } from '@/components/NotificationManager';
 import { SmsAutoCapture } from '@/components/SmsAutoCapture';
 import { useTheme } from '@/hooks/useTheme';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { configureNotifications } from '@/services/notifications';
 import interFonts from '@/theme/interFonts';
 
 // Keep the native splash up until our fonts are ready (then the in-app
@@ -27,6 +29,10 @@ export default function App() {
     }
   }, [ready]);
 
+  useEffect(() => {
+    void configureNotifications();
+  }, []);
+
   if (!ready) {
     return null;
   }
@@ -37,6 +43,7 @@ export default function App() {
         <SafeAreaProvider>
           <RootNavigator />
           <SmsAutoCapture />
+          <NotificationManager />
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </SafeAreaProvider>
       </QueryProvider>

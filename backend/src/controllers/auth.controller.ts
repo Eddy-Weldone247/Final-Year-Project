@@ -4,11 +4,8 @@ import * as authService from '../services/auth.service';
 import { asyncHandler } from '../utils/asyncHandler';
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const user = await authService.registerUser(req.body);
-  res.status(201).json({
-    message: 'Registration successful. Check your email to verify your account.',
-    user,
-  });
+  const { user, token } = await authService.registerUser(req.body);
+  res.status(201).json({ message: 'Registration successful.', user, token });
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {

@@ -12,8 +12,13 @@ export function useLogin() {
   });
 }
 
+/** Registers and stores the session; navigation reacts to the auth state. */
 export function useRegister() {
-  return useMutation({ mutationFn: authApi.register });
+  const setAuth = useAuthStore((state) => state.setAuth);
+  return useMutation({
+    mutationFn: authApi.register,
+    onSuccess: ({ user, token }) => setAuth(user, token),
+  });
 }
 
 export function useForgotPassword() {
@@ -22,10 +27,6 @@ export function useForgotPassword() {
 
 export function useResetPassword() {
   return useMutation({ mutationFn: authApi.resetPassword });
-}
-
-export function useVerifyEmail() {
-  return useMutation({ mutationFn: authApi.verifyEmail });
 }
 
 /** Clears the persisted session. */

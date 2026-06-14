@@ -17,10 +17,11 @@ export function TransactionsNavigator() {
         component={TransactionListScreen}
         options={{ headerShown: false }}
       />
+      {/* Headerless — renders its own glass shell (AuthLayout) with a back pill. */}
       <Stack.Screen
         name="EditTransaction"
         component={EditTransactionScreen}
-        options={{ title: 'Edit Transaction' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="ImportSms"

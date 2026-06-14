@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/useTheme';
+import { spacing } from '@/theme/spacing';
 
 interface ScreenContainerProps {
   children: ReactNode;
@@ -36,6 +37,6 @@ export function ScreenContainer({ children, center = true }: ScreenContainerProp
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
-  content: { flexGrow: 1, gap: 16, padding: 24 },
+  content: { flexGrow: 1, gap: spacing.lg, padding: spacing.xxl },
   centered: { justifyContent: 'center' },
 });

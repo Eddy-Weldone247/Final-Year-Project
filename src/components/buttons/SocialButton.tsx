@@ -15,10 +15,14 @@ interface SocialButtonProps {
 export function SocialButton({ provider, onPress }: SocialButtonProps) {
   const { c, isDark } = useAuthTheme();
   const isGoogle = provider === 'google';
-  const label = isGoogle ? 'Continue with Google' : 'Continue with Apple';
+  const label = isGoogle ? 'Google' : 'Apple';
 
   return (
-    <PressableScale onPress={onPress} style={styles.wrap} accessibilityLabel={label}>
+    <PressableScale
+      onPress={onPress}
+      style={styles.wrap}
+      accessibilityLabel={`Continue with ${label}`}
+    >
       <BlurView
         intensity={c.blurIntensity}
         tint={c.blurTint}
@@ -33,7 +37,9 @@ export function SocialButton({ provider, onPress }: SocialButtonProps) {
               <AppleIcon size={20} color={isDark ? '#FFFFFF' : '#0F172A'} />
             )}
           </View>
-          <Text style={[styles.label, { color: c.text }]}>{label}</Text>
+          <Text style={[styles.label, { color: c.text }]} numberOfLines={1}>
+            {label}
+          </Text>
         </View>
       </BlurView>
     </PressableScale>

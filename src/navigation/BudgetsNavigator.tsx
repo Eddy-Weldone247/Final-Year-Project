@@ -15,7 +15,12 @@ export function BudgetsNavigator() {
         component={BudgetOverviewScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="BudgetForm" component={BudgetFormScreen} options={{ title: 'Budget' }} />
+      {/* Headerless — renders its own glass shell (AuthLayout) with a back pill. */}
+      <Stack.Screen
+        name="BudgetForm"
+        component={BudgetFormScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }

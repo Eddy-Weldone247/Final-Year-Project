@@ -303,6 +303,53 @@ export function CloseIcon({ size, color = '#94A3B8', strokeWidth = 2 }: IconProp
   );
 }
 
+export function ChevronRightIcon({ size, color = '#94A3B8', strokeWidth = 2 }: IconProps) {
+  return (
+    <Svg {...base(size)} fill="none">
+      <Path
+        d="M9 5l7 7-7 7"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function SettingsIcon({ size, color = '#94A3B8', strokeWidth = 1.9 }: IconProps) {
+  return (
+    <Svg {...base(size)} fill="none">
+      <Path d="M20 7H11" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <Circle cx="7" cy="7" r="3" stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M14 17H4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <Circle cx="17" cy="17" r="3" stroke={color} strokeWidth={strokeWidth} />
+    </Svg>
+  );
+}
+
+export function LogOutIcon({ size, color = '#94A3B8', strokeWidth = 1.9 }: IconProps) {
+  return (
+    <Svg {...base(size)} fill="none">
+      <Path
+        d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M16 17l5-5-5-5"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M21 12H9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 /** Multi-color Google "G". */
 export function GoogleIcon({ size = 20 }: IconProps) {
   return (

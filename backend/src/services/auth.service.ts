@@ -3,10 +3,9 @@ import { AppError } from '../middleware/errorHandler';
 import type { PublicUser } from '../types/user';
 import { createSecureToken, hashToken } from '../utils/crypto';
 import { hashPassword, verifyPassword } from '../utils/password';
-import { sendPasswordResetEmail, sendVerificationEmail } from './email.service';
+import { sendPasswordResetEmail } from './email.service';
 import { signAccessToken } from './token.service';
 
-const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 /** Fields returned to clients — never includes the password or raw tokens. */
@@ -31,8 +30,16 @@ interface LoginParams {
   password: string;
 }
 
-/** Creates an account and sends an email-verification link. */
-export async function registerUser({ name, email, password }: RegisterParams): Promise<PublicUser> {
+/**
+ * Creates an account and signs the user straight in. Email verification is not
+ * required — accounts are created ready to use and a JWT is returned so the app
+ * can drop the user into the main screen immediately after registering.
+ */
+export async function registerUser({
+  name,
+  email,
+  password,
+}: RegisterParams): Promise<{ user: PublicUser; token: string }> {
   const normalizedEmail = email.toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -40,7 +47,6 @@ export async function registerUser({ name, email, password }: RegisterParams): P
     throw new AppError(409, 'An account with this email already exists');
   }
 
-  const { token, hashedToken } = createSecureToken();
   const passwordHash = await hashPassword(password);
 
   const user = await prisma.user.create({
@@ -48,14 +54,13 @@ export async function registerUser({ name, email, password }: RegisterParams): P
       name,
       email: normalizedEmail,
       password: passwordHash,
-      emailVerificationToken: hashedToken,
-      emailVerificationExpires: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS),
+      isEmailVerified: true,
     },
     select: publicUserSelect,
   });
 
-  await sendVerificationEmail(normalizedEmail, token);
-  return user;
+  const token = signAccessToken({ sub: user.id, email: user.email });
+  return { user, token };
 }
 
 /** Authenticates a user and returns a signed access token. */

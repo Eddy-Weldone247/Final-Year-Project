@@ -1,5 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, Text } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import { AnalyticsScreen } from '@/screens/AnalyticsScreen';
@@ -13,24 +13,22 @@ import type { AppTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
-function HomeIcon() {
-  return <Text style={styles.icon}>🏠</Text>;
+type IoniconName = keyof typeof Ionicons.glyphMap;
+type TabIconProps = { focused: boolean; color: string; size: number };
+
+/** Builds a tab icon that shows the filled glyph when focused, outline otherwise. */
+function tabIcon(active: IoniconName, inactive: IoniconName) {
+  return function TabBarIcon({ focused, color, size }: TabIconProps) {
+    return <Ionicons name={focused ? active : inactive} size={size} color={color} />;
+  };
 }
-function TransactionsIcon() {
-  return <Text style={styles.icon}>📒</Text>;
-}
-function AddIcon() {
-  return <Text style={styles.icon}>➕</Text>;
-}
-function BudgetsIcon() {
-  return <Text style={styles.icon}>🎯</Text>;
-}
-function AnalyticsIcon() {
-  return <Text style={styles.icon}>📊</Text>;
-}
-function ProfileIcon() {
-  return <Text style={styles.icon}>👤</Text>;
-}
+
+const HomeIcon = tabIcon('home', 'home-outline');
+const TransactionsIcon = tabIcon('receipt', 'receipt-outline');
+const AddIcon = tabIcon('add-circle', 'add-circle-outline');
+const BudgetsIcon = tabIcon('wallet', 'wallet-outline');
+const AnalyticsIcon = tabIcon('stats-chart', 'stats-chart-outline');
+const ProfileIcon = tabIcon('person-circle', 'person-circle-outline');
 
 /** Authenticated bottom-tab navigation. */
 export function AppNavigator() {
@@ -70,7 +68,3 @@ export function AppNavigator() {
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  icon: { fontSize: 18 },
-});

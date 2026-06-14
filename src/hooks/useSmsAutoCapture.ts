@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import * as transactionApi from '@/api/transaction.api';
+import { onTransactionCreated } from '@/services/notifications';
 import { parseMany } from '@/services/sms/parser';
 import { isSmsReadingAvailable, readInbox } from '@/services/sms/smsReader';
 import { toCreatePayload } from '@/services/sms/toTransaction';
@@ -42,7 +43,8 @@ export function useSmsAutoCapture() {
         const created: string[] = [];
         for (const candidate of fresh) {
           try {
-            await transactionApi.createTransaction(toCreatePayload(candidate));
+            const tx = await transactionApi.createTransaction(toCreatePayload(candidate));
+            onTransactionCreated(tx);
             created.push(candidate.smsId);
           } catch {
             // Skip this one; a later run will retry it.
