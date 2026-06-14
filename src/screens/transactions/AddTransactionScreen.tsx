@@ -14,7 +14,6 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedBackground } from '@/components/animations/AnimatedBackground';
-import { PressableScale } from '@/components/animations/PressableScale';
 import { SuccessCheck } from '@/components/animations/SuccessCheck';
 import { GradientButton } from '@/components/buttons/GradientButton';
 import { GlassCard } from '@/components/cards/GlassCard';
@@ -23,6 +22,7 @@ import { FloatingLabelInput } from '@/components/inputs/FloatingLabelInput';
 import { AmountField } from '@/components/transactions/AmountField';
 import { CategoryChips } from '@/components/transactions/CategoryChips';
 import { DateField } from '@/components/transactions/DateField';
+import { TypeToggle } from '@/components/transactions/TypeToggle';
 import { getCategoryMeta } from '@/constants/categories';
 import { useCreateTransaction } from '@/hooks/useTransactions';
 import type { AppTabParamList } from '@/navigation/types';
@@ -33,51 +33,6 @@ import { formatCurrency } from '@/utils/formatCurrency';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 
 type Props = BottomTabScreenProps<AppTabParamList, 'Add'>;
-
-function TypeToggle({
-  type,
-  onChange,
-  accent,
-}: {
-  type: TransactionType;
-  onChange: (t: TransactionType) => void;
-  accent: string;
-}) {
-  const { c } = useAuthTheme();
-  const options: { key: TransactionType; label: string }[] = [
-    { key: 'EXPENSE', label: 'Expense' },
-    { key: 'INCOME', label: 'Income' },
-  ];
-  return (
-    <BlurView
-      intensity={c.blurIntensity}
-      tint={c.blurTint}
-      experimentalBlurMethod="dimezisBlurView"
-      style={styles.toggleClip}
-    >
-      <View style={[styles.toggle, { backgroundColor: c.glassBg, borderColor: c.glassBorder }]}>
-        {options.map((o) => {
-          const active = type === o.key;
-          return (
-            <PressableScale
-              key={o.key}
-              onPress={() => onChange(o.key)}
-              scaleTo={0.97}
-              style={styles.segWrap}
-              accessibilityLabel={o.label}
-            >
-              <View style={[styles.seg, active ? { backgroundColor: `${accent}26` } : null]}>
-                <Text style={[styles.segText, { color: active ? accent : c.textMuted }]}>
-                  {o.label}
-                </Text>
-              </View>
-            </PressableScale>
-          );
-        })}
-      </View>
-    </BlurView>
-  );
-}
 
 export function AddTransactionScreen({ navigation, route }: Props) {
   const { c } = useAuthTheme();
@@ -146,7 +101,7 @@ export function AddTransactionScreen({ navigation, route }: Props) {
               <Text style={[styles.title, { color: c.text }]}>
                 {isIncome ? 'Add income' : 'Add expense'}
               </Text>
-              <TypeToggle type={type} onChange={setType} accent={accent} />
+              <TypeToggle type={type} onChange={setType} />
             </Animated.View>
 
             <AmountField
@@ -223,11 +178,6 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 32, gap: 20 },
   header: { gap: 14 },
   title: { fontSize: 28, fontFamily: fontFamily.bold, letterSpacing: -0.4 },
-  toggleClip: { borderRadius: 16, overflow: 'hidden' },
-  toggle: { flexDirection: 'row', borderRadius: 16, borderWidth: 1, padding: 4 },
-  segWrap: { flex: 1 },
-  seg: { alignItems: 'center', borderRadius: 12, paddingVertical: 10 },
-  segText: { fontSize: 15, fontFamily: fontFamily.semibold },
   form: { gap: 18 },
   section: { gap: 12 },
   label: { fontSize: 14, fontFamily: fontFamily.medium },
