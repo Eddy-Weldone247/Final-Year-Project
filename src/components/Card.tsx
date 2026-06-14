@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
+import { radius, shadow, spacing } from '@/theme/spacing';
 
 interface CardProps {
   children: ReactNode;
@@ -11,17 +12,21 @@ interface CardProps {
 /** Themed, elevated surface used across the dashboard. */
 export function Card({ children, style }: CardProps) {
   const { colors, isDark } = useTheme();
-  const themed = { backgroundColor: colors.card, shadowOpacity: isDark ? 0.35 : 0.06 };
+  // Shadows read as near-black; lift opacity a touch in dark mode, and add a
+  // hairline border so the card edge stays crisp on busy backgrounds.
+  const themed = {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    shadowOpacity: isDark ? 0.4 : 0.08,
+  };
   return <View style={[styles.card, themed, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
-    elevation: 2,
-    padding: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.lg,
+    ...shadow.md,
   },
 });

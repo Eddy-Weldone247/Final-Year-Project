@@ -1,13 +1,11 @@
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
   Extrapolation,
-  FadeIn,
   FadeInDown,
-  FadeOut,
   interpolate,
   LinearTransition,
   type SharedValue,
@@ -53,27 +51,6 @@ function SwipeAction({
   );
 }
 
-function DetailRow({
-  label,
-  value,
-  color,
-  muted,
-}: {
-  label: string;
-  value: string;
-  color: string;
-  muted: string;
-}) {
-  return (
-    <View style={styles.detailRow}>
-      <Text style={[styles.detailLabel, { color: muted }]}>{label}</Text>
-      <Text style={[styles.detailValue, { color }]} numberOfLines={2}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 interface Props {
   transaction: Transaction;
   index: number;
@@ -81,11 +58,13 @@ interface Props {
   onDelete: (t: Transaction) => void;
 }
 
-/** A glass transaction card with swipe-to-edit / swipe-to-delete and tap-to-expand. */
+/**
+ * A glass transaction card. Tap = edit (consistent with the dashboard's recent
+ * list); swipe right = Edit, swipe left = Delete.
+ */
 export function SwipeableTransactionRow({ transaction, index, onEdit, onDelete }: Props) {
   const { c } = useAuthTheme();
   const ref = useRef<SwipeableMethods>(null);
-  const [expanded, setExpanded] = useState(false);
 
   const meta = getCategoryMeta(transaction.category);
   const isIncome = transaction.type === 'INCOME';
@@ -135,14 +114,14 @@ export function SwipeableTransactionRow({ transaction, index, onEdit, onDelete }
         containerStyle={styles.swipe}
       >
         <Pressable
-          onPress={() => setExpanded((e) => !e)}
+          onPress={handleEdit}
           style={({ pressed }) => [
             styles.card,
             { backgroundColor: c.glassBg, borderColor: c.glassBorder },
             pressed ? styles.pressed : null,
           ]}
           accessibilityRole="button"
-          accessibilityLabel={`${transaction.note || meta.label}, ${formatCurrency(transaction.amount)}`}
+          accessibilityLabel={`Edit ${transaction.note || meta.label}, ${formatCurrency(transaction.amount)}`}
         >
           <View style={styles.row}>
             <View style={[styles.icon, { backgroundColor: `${meta.color}29` }]}>
@@ -161,53 +140,6 @@ export function SwipeableTransactionRow({ transaction, index, onEdit, onDelete }
               {formatCurrency(transaction.amount)}
             </Text>
           </View>
-
-          {expanded ? (
-            <Animated.View
-              entering={FadeIn.duration(200)}
-              exiting={FadeOut.duration(150)}
-              style={styles.details}
-            >
-              <View style={[styles.divider, { backgroundColor: c.glassBorder }]} />
-              <DetailRow
-                label="Type"
-                value={isIncome ? 'Income' : 'Expense'}
-                color={c.text}
-                muted={c.textMuted}
-              />
-              <DetailRow label="Category" value={meta.label} color={c.text} muted={c.textMuted} />
-              <DetailRow
-                label="Date"
-                value={formatDate(transaction.date)}
-                color={c.text}
-                muted={c.textMuted}
-              />
-              {transaction.note ? (
-                <DetailRow
-                  label="Note"
-                  value={transaction.note}
-                  color={c.text}
-                  muted={c.textMuted}
-                />
-              ) : null}
-              <View style={styles.quickActions}>
-                <PressableScale
-                  onPress={handleEdit}
-                  style={[styles.quickBtn, { borderColor: c.glassBorder }]}
-                >
-                  <PencilIcon size={16} color={c.primary} />
-                  <Text style={[styles.quickText, { color: c.primary }]}>Edit</Text>
-                </PressableScale>
-                <PressableScale
-                  onPress={handleDelete}
-                  style={[styles.quickBtn, { borderColor: c.glassBorder }]}
-                >
-                  <TrashIcon size={16} color={c.danger} />
-                  <Text style={[styles.quickText, { color: c.danger }]}>Delete</Text>
-                </PressableScale>
-              </View>
-            </Animated.View>
-          ) : null}
         </Pressable>
       </ReanimatedSwipeable>
     </Animated.View>
@@ -226,22 +158,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontFamily: fontFamily.semibold },
   sub: { fontSize: 13, fontFamily: fontFamily.regular, marginTop: 2 },
   amount: { fontSize: 16, fontFamily: fontFamily.bold },
-  details: { marginTop: 12, gap: 10 },
-  divider: { height: 1, opacity: 0.7, marginBottom: 2 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 16 },
-  detailLabel: { fontSize: 13, fontFamily: fontFamily.medium },
-  detailValue: { fontSize: 13, fontFamily: fontFamily.semibold, flexShrink: 1, textAlign: 'right' },
-  quickActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  quickBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  quickText: { fontSize: 13, fontFamily: fontFamily.semibold },
   actionWrap: { justifyContent: 'center', paddingHorizontal: 6 },
   actionLeft: { alignItems: 'flex-start' },
   actionRight: { alignItems: 'flex-end' },

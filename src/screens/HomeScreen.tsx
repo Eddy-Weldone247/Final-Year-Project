@@ -218,15 +218,15 @@ function RecentRow({
       accessibilityLabel={transaction.note || meta.label}
     >
       <View style={styles.row}>
-        <View style={[styles.rowIcon, { backgroundColor: `${meta.color}26` }]}>
+        <View style={[styles.rowIcon, { backgroundColor: `${meta.color}29` }]}>
           <Text style={styles.rowEmoji}>{meta.icon}</Text>
         </View>
         <View style={styles.rowMiddle}>
           <Text style={[styles.rowTitle, { color: c.text }]} numberOfLines={1}>
             {transaction.note || meta.label}
           </Text>
-          <Text style={[styles.rowSub, { color: c.textMuted }]}>
-            {formatDate(transaction.date)}
+          <Text style={[styles.rowSub, { color: c.textMuted }]} numberOfLines={1}>
+            {meta.label} · {formatDate(transaction.date)}
           </Text>
         </View>
         <Text style={[styles.rowAmount, { color: isIncome ? c.success : c.danger }]}>
@@ -299,12 +299,12 @@ const styles = StyleSheet.create({
   row: { alignItems: 'center', flexDirection: 'row', gap: 12, paddingVertical: 12 },
   rowIcon: {
     alignItems: 'center',
-    borderRadius: 20,
-    height: 40,
+    borderRadius: 14,
+    height: 44,
     justifyContent: 'center',
-    width: 40,
+    width: 44,
   },
-  rowEmoji: { fontSize: 18 },
+  rowEmoji: { fontSize: 20 },
   rowMiddle: { flex: 1 },
   rowTitle: { fontSize: 15, fontFamily: fontFamily.semibold },
   rowSub: { fontSize: 13, fontFamily: fontFamily.regular, marginTop: 2 },

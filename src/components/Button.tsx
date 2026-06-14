@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
+import { radius, shadow, sizing } from '@/theme/spacing';
+import { fontFamily } from '@/theme/typography';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -37,6 +39,9 @@ export function Button({
   const labelColor = isGhost ? colors.primary : colors.onPrimary;
   const spinnerColor = isGhost ? colors.primary : colors.onPrimary;
 
+  // Filled buttons get a soft shadow tinted to their own color; ghost stays flat.
+  const elevation = isGhost || isDisabled ? null : { ...shadow.md, shadowColor: backgroundColor };
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -46,6 +51,7 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         { backgroundColor },
+        elevation,
         isDisabled ? styles.disabled : null,
         pressed && !isDisabled ? styles.pressed : null,
         style,
@@ -63,12 +69,12 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: 10,
-    height: 50,
+    borderRadius: radius.md,
+    height: sizing.control,
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
   },
   disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
-  label: { fontSize: 16, fontWeight: '600' },
+  pressed: { opacity: 0.96, transform: [{ scale: 0.98 }] },
+  label: { fontSize: 16, fontFamily: fontFamily.semibold, letterSpacing: 0.2 },
 });

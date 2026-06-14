@@ -14,8 +14,8 @@ export async function login(payload: LoginPayload): Promise<AuthResult> {
   return data;
 }
 
-export async function register(payload: RegisterPayload): Promise<MessageResult> {
-  const { data } = await apiClient.post<MessageResult>('/auth/register', payload);
+export async function register(payload: RegisterPayload): Promise<AuthResult> {
+  const { data } = await apiClient.post<AuthResult>('/auth/register', payload);
   return data;
 }
 
@@ -26,10 +26,5 @@ export async function forgotPassword(payload: ForgotPasswordPayload): Promise<Me
 
 export async function resetPassword(payload: ResetPasswordPayload): Promise<MessageResult> {
   const { data } = await apiClient.post<MessageResult>('/auth/reset-password', payload);
-  return data;
-}
-
-export async function verifyEmail(payload: { token: string }): Promise<MessageResult> {
-  const { data } = await apiClient.post<MessageResult>('/auth/verify-email', payload);
   return data;
 }

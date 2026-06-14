@@ -39,10 +39,7 @@ export function RegisterScreen({ navigation }: Props) {
   const handleSubmit = () => {
     register.mutate(
       { name: name.trim(), email: email.trim(), password },
-      {
-        onSuccess: () => navigation.navigate('VerifyEmail', { email: email.trim() }),
-        onError: (error) => Alert.alert('Registration failed', getErrorMessage(error)),
-      },
+      { onError: (error) => Alert.alert('Registration failed', getErrorMessage(error)) },
     );
   };
 

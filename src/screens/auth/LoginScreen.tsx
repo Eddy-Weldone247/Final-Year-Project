@@ -108,8 +108,12 @@ export function LoginScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.social}>
-            <SocialButton provider="google" onPress={social} />
-            <SocialButton provider="apple" onPress={social} />
+            <View style={styles.socialItem}>
+              <SocialButton provider="google" onPress={social} />
+            </View>
+            <View style={styles.socialItem}>
+              <SocialButton provider="apple" onPress={social} />
+            </View>
           </View>
         </View>
       </GlassCard>
@@ -142,6 +146,7 @@ const styles = StyleSheet.create({
   line: { flex: 1, height: 1 },
   dividerText: { fontSize: 12, fontFamily: fontFamily.medium },
   social: { flexDirection: 'row', gap: 12 },
+  socialItem: { flex: 1 },
   bottom: {
     flexDirection: 'row',
     justifyContent: 'center',

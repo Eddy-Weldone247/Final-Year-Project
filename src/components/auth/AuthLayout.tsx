@@ -15,15 +15,17 @@ interface AuthLayoutProps {
   onBack?: () => void;
   /** Wrap content in a scroll view (default true). */
   scroll?: boolean;
+  /** Vertically center the content (default true). Pass false for top-aligned lists/forms. */
+  center?: boolean;
 }
 
-/** Shared shell for auth screens: animated backdrop + safe area + keyboard handling. */
-export function AuthLayout({ children, onBack, scroll = true }: AuthLayoutProps) {
+/** Shared shell for auth/profile screens: animated backdrop + safe area + keyboard handling. */
+export function AuthLayout({ children, onBack, scroll = true, center = true }: AuthLayoutProps) {
   const { c } = useAuthTheme();
 
   const content = scroll ? (
     <ScrollView
-      contentContainerStyle={styles.scroll}
+      contentContainerStyle={[styles.scroll, center ? styles.centered : null]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
@@ -69,7 +71,8 @@ export function AuthLayout({ children, onBack, scroll = true }: AuthLayoutProps)
 const styles = StyleSheet.create({
   root: { flex: 1 },
   fill: { flex: 1 },
-  scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 28 },
+  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 28 },
+  centered: { justifyContent: 'center' },
   backWrap: { paddingHorizontal: 20, paddingTop: 4 },
   backShadow: { width: 44, height: 44, borderRadius: 14 },
   backClip: { borderRadius: 14, overflow: 'hidden' },
