@@ -101,7 +101,7 @@ function EditForm({ transaction, onClose }: { transaction: Transaction; onClose:
       <View style={styles.content}>
         <Animated.View entering={FadeIn.duration(450)} style={styles.header}>
           <Text style={[styles.title, { color: c.text }]}>Edit transaction</Text>
-          <TypeToggle type={type} onChange={setType} accent={accent} />
+          <TypeToggle type={type} onChange={setType} />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(420).delay(40)}>
