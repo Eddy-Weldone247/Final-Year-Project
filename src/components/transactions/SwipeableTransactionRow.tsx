@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { type ReactNode, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import ReanimatedSwipeable, {
@@ -125,7 +126,7 @@ export function SwipeableTransactionRow({ transaction, index, onEdit, onDelete }
         >
           <View style={styles.row}>
             <View style={[styles.icon, { backgroundColor: `${meta.color}29` }]}>
-              <Text style={styles.emoji}>{meta.icon}</Text>
+              <Ionicons name={meta.ionicon} size={20} color={meta.color} />
             </View>
             <View style={styles.mid}>
               <Text style={[styles.title, { color: c.text }]} numberOfLines={1}>
@@ -153,7 +154,6 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   icon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 20 },
   mid: { flex: 1 },
   title: { fontSize: 15, fontFamily: fontFamily.semibold },
   sub: { fontSize: 13, fontFamily: fontFamily.regular, marginTop: 2 },

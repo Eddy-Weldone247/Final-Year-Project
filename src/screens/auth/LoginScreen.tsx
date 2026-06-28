@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { PressableScale } from '@/components/animations/PressableScale';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { GradientButton } from '@/components/buttons/GradientButton';
@@ -12,7 +11,6 @@ import { GlassCard } from '@/components/cards/GlassCard';
 import { ArrowRightIcon, LockIcon, MailIcon } from '@/components/icons';
 import { Checkbox } from '@/components/inputs/Checkbox';
 import { FloatingLabelInput } from '@/components/inputs/FloatingLabelInput';
-import { config } from '@/constants/config';
 import { useLogin } from '@/hooks/useAuth';
 import { useRememberedEmail } from '@/hooks/useRememberedEmail';
 import { useAuthTheme } from '@/theme/authTheme';
@@ -45,13 +43,6 @@ export function LoginScreen({ navigation }: Props) {
     login.mutate(
       { email: email.trim(), password },
       { onError: (error) => Alert.alert('Sign in failed', getErrorMessage(error)) },
-    );
-  };
-
-  const handleDevSkip = () => {
-    login.mutate(
-      { email: config.devEmail, password: config.devPassword },
-      { onError: (error) => Alert.alert('Dev login failed', getErrorMessage(error)) },
     );
   };
 
@@ -124,16 +115,6 @@ export function LoginScreen({ navigation }: Props) {
           <Text style={[styles.link, { color: c.primary }]}>Create one</Text>
         </Pressable>
       </Animated.View>
-
-      {__DEV__ ? (
-        <PressableScale
-          onPress={handleDevSkip}
-          style={styles.dev}
-          accessibilityLabel="Skip login (dev)"
-        >
-          <Text style={[styles.devText, { color: c.textFaint }]}>Skip login (dev)</Text>
-        </PressableScale>
-      ) : null}
     </AuthLayout>
   );
 }
@@ -155,6 +136,4 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   bottomText: { fontSize: 14, fontFamily: fontFamily.regular },
-  dev: { alignSelf: 'center', marginTop: 14, paddingVertical: 6, paddingHorizontal: 12 },
-  devText: { fontSize: 12, fontFamily: fontFamily.medium },
 });

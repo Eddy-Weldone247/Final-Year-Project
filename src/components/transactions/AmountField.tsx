@@ -10,6 +10,7 @@ import Animated, {
 
 import { useAuthTheme } from '@/theme/authTheme';
 import { fontFamily } from '@/theme/typography';
+import { CURRENCY_SYMBOL } from '@/utils/formatCurrency';
 
 interface AmountFieldProps {
   value: string;
@@ -47,7 +48,7 @@ export function AmountField({ value, onChangeText, accent, shakeSignal }: Amount
         style={[styles.glow, { shadowColor: accent, backgroundColor: `${accent}14` }, glowStyle]}
       />
       <View style={styles.row}>
-        <Text style={[styles.currency, { color: accent }]}>$</Text>
+        <Text style={[styles.currency, { color: accent }]}>{CURRENCY_SYMBOL}</Text>
         <TextInput
           value={value}
           onChangeText={(t) => onChangeText(t.replace(/[^0-9.]/g, ''))}

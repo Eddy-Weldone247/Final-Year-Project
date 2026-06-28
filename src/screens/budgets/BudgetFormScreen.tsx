@@ -18,7 +18,7 @@ import { type AuthPalette, useAuthTheme } from '@/theme/authTheme';
 import { radius, spacing } from '@/theme/spacing';
 import { fontFamily } from '@/theme/typography';
 import type { BudgetProgress } from '@/types/budget';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { CURRENCY_SYMBOL, formatCurrency } from '@/utils/formatCurrency';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { formatMonth } from '@/utils/month';
 
@@ -233,7 +233,7 @@ export function BudgetFormScreen({ route, navigation }: Props) {
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
-              icon={<Text style={[styles.prefix, { color: c.inputIcon }]}>$</Text>}
+              icon={<Text style={[styles.prefix, { color: c.inputIcon }]}>{CURRENCY_SYMBOL}</Text>}
               error={error}
               success={valid}
               returnKeyType="done"

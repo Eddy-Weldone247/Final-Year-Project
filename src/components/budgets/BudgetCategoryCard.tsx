@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -47,7 +48,7 @@ export function BudgetCategoryCard({ meta, budget, index = 0, onPress }: Props) 
       <View style={[styles.card, { backgroundColor: c.glassBg, borderColor: c.glassBorder }]}>
         <View style={styles.header}>
           <View style={[styles.icon, { backgroundColor: `${meta.color}29` }]}>
-            <Text style={styles.emoji}>{meta.icon}</Text>
+            <Ionicons name={meta.ionicon} size={19} color={meta.color} />
           </View>
           <Text style={[styles.label, { color: c.text }]}>{meta.label}</Text>
           {budget ? (
@@ -90,7 +91,6 @@ const styles = StyleSheet.create({
   card: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 10 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   icon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 19 },
   label: { flex: 1, fontSize: 16, fontFamily: fontFamily.semibold },
   percent: { fontSize: 16, fontFamily: fontFamily.bold },
   set: { fontSize: 14, fontFamily: fontFamily.semibold },
