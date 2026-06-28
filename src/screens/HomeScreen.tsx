@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { type BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -219,7 +220,7 @@ function RecentRow({
     >
       <View style={styles.row}>
         <View style={[styles.rowIcon, { backgroundColor: `${meta.color}29` }]}>
-          <Text style={styles.rowEmoji}>{meta.icon}</Text>
+          <Ionicons name={meta.ionicon} size={20} color={meta.color} />
         </View>
         <View style={styles.rowMiddle}>
           <Text style={[styles.rowTitle, { color: c.text }]} numberOfLines={1}>
@@ -304,7 +305,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44,
   },
-  rowEmoji: { fontSize: 20 },
   rowMiddle: { flex: 1 },
   rowTitle: { fontSize: 15, fontFamily: fontFamily.semibold },
   rowSub: { fontSize: 13, fontFamily: fontFamily.regular, marginTop: 2 },

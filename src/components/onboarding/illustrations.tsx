@@ -14,6 +14,7 @@ import Svg, {
 import { CheckIcon, LogoMark, MailIcon, ShieldIcon, SparkleIcon } from '@/components/icons';
 import { useAuthTheme } from '@/theme/authTheme';
 import { fontFamily } from '@/theme/typography';
+import { CURRENCY_GLYPH } from '@/utils/formatCurrency';
 
 import { FloatingElement } from './FloatingElement';
 
@@ -73,7 +74,9 @@ function Coin({ size = 34 }: { size?: number }) {
       end={{ x: 1, y: 1 }}
       style={[styles.coin, { width: size, height: size, borderRadius: size / 2 }]}
     >
-      <Text style={[styles.coinText, { color: c.onPrimary, fontSize: size * 0.45 }]}>$</Text>
+      <Text style={[styles.coinText, { color: c.onPrimary, fontSize: size * 0.45 }]}>
+        {CURRENCY_GLYPH}
+      </Text>
     </LinearGradient>
   );
 }

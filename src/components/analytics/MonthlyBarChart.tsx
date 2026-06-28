@@ -4,7 +4,7 @@ import { BarChart } from 'react-native-gifted-charts';
 import type { AuthPalette } from '@/theme/authTheme';
 import { fontFamily } from '@/theme/typography';
 import type { MonthlyTotal } from '@/types/stats';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { CURRENCY_GLYPH, formatCurrency } from '@/utils/formatCurrency';
 
 import { niceMax, shortMonth } from './chartUtils';
 
@@ -43,7 +43,7 @@ export function MonthlyBarChart({ monthly, c }: { monthly: MonthlyTotal[]; c: Au
       rulesType="dashed"
       yAxisTextStyle={axisText}
       xAxisLabelTextStyle={axisText}
-      yAxisLabelPrefix="$"
+      yAxisLabelPrefix={CURRENCY_GLYPH}
       isAnimated
       disableScroll
       renderTooltip={(_item: unknown, index: number) => {

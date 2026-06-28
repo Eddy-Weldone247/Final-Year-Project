@@ -4,7 +4,7 @@ import { LineChart } from 'react-native-gifted-charts';
 import type { AuthPalette } from '@/theme/authTheme';
 import { fontFamily } from '@/theme/typography';
 import type { MonthlyTotal } from '@/types/stats';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { CURRENCY_GLYPH, formatCurrency } from '@/utils/formatCurrency';
 
 import { niceMax, shortMonth } from './chartUtils';
 
@@ -51,7 +51,7 @@ export function IncomeExpenseChart({ monthly, c }: { monthly: MonthlyTotal[]; c:
         rulesType="dashed"
         yAxisTextStyle={axisText}
         xAxisLabelTextStyle={axisText}
-        yAxisLabelPrefix="$"
+        yAxisLabelPrefix={CURRENCY_GLYPH}
         isAnimated
         animateOnDataChange
         disableScroll

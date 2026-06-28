@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BlurView } from 'expo-blur';
@@ -303,7 +304,8 @@ export function TransactionListScreen({ navigation }: Props) {
             {CATEGORIES.map((cat) => (
               <Chip
                 key={cat.value}
-                label={`${cat.icon} ${cat.label}`}
+                label={cat.label}
+                icon={<Ionicons name={cat.ionicon} size={15} color={cat.color} />}
                 active={category === cat.value}
                 onPress={() => setCategory(category === cat.value ? undefined : cat.value)}
                 c={c}

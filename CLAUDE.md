@@ -122,7 +122,9 @@ auth UI; reuse `useTheme()` tokens everywhere else.
 **Category colors** (see `src/constants/categories.ts`, single source of truth):
 Food `#f97316` · Transport `#3b82f6` · Shopping `#ec4899` · Entertainment `#8b5cf6` ·
 Utilities `#eab308` · Healthcare `#ef4444` · Education `#14b8a6` · Others `#6b7280`.
-Each category also has an emoji icon (no icon library is used — emoji only).
+Each category has an **emoji** `icon` (chips, transaction rows) **and** an `ionicon`
+(`@expo/vector-icons` Ionicons glyph, typed against `Ionicons.glyphMap`) used by the
+dashboard/Analytics **Spending Breakdown legend** (`ExpensePieCard`).
 
 **Shape & type** — layout tokens now live in `src/theme/spacing.ts`; **prefer these over
 ad-hoc numbers** so the app keeps a consistent rhythm.
@@ -138,7 +140,11 @@ ad-hoc numbers** so the app keeps a consistent rhythm.
   `14/500`, small `12`. **All shared primitives use the Inter `fontFamily`** (never raw
   `fontWeight`).
 - Spacing in practice: screen padding `xxl`, gaps `sm–lg`.
-- Currency: USD-style via `formatCurrency` (`$1,234.56`); never use `Intl` (Hermes-unsafe).
+- Currency: **Ghanaian Cedi** (`GHS` · symbol `GH₵` · locale `en-GH`) via `formatCurrency`
+  (`GH₵1,234.56`). Symbol/code/locale constants live in `utils/formatCurrency.ts`
+  (`CURRENCY_SYMBOL`/`CURRENCY_CODE`/`CURRENCY_GLYPH`/`CURRENCY_LOCALE`); the bare `₵`
+  `CURRENCY_GLYPH` is used in tight spots (chart axes, the onboarding coin). **Never use
+  `Intl`** — Hermes ships without full ICU data, so currency formatting is done manually.
 
 ## 4. Conventions
 
@@ -314,7 +320,7 @@ ad-hoc numbers** so the app keeps a consistent rhythm.
   renders when `user.role === 'ADMIN'` (`api/admin.api.ts` + `hooks/useAdmin.ts`).
   See `docs/ADMIN.md`.
 - **App shell**: tabs **Home (dashboard) · Transactions · Add · Budgets · Analytics · Profile**
-  (+ **Admin** for admins only); auth stack; dev "Skip login" button + optional dev auto-login.
+  (+ **Admin** for admins only); auth stack; optional dev auto-login (env-gated).
 
 ## 7. Commands (run from repo root `Final Year Project/`)
 
@@ -349,8 +355,8 @@ delegate into `backend/` via `npm --prefix`. `npx expo start` now works from the
 - Default running stack: DB `:5432`, API `:4000` (LAN `http://192.168.100.27:4000/api`),
   Metro `:8081` (`exp://192.168.100.27:8081`).
 - **Demo account** (verified, has sample data, **ADMIN** in local dev): `demo@expensee.app` / `demo12345`.
-- **Dev bypass**: a "Skip login (dev)" button on the login screen (gated by `__DEV__`).
-  Set `EXPO_PUBLIC_DEV_AUTOLOGIN=true` to skip the screen entirely. Credentials in
-  `src/constants/config.ts`.
+- **Dev bypass**: set `EXPO_PUBLIC_DEV_AUTOLOGIN=true` to skip the login screen entirely
+  (credentials in `src/constants/config.ts`). (The on-screen "Skip login (dev)" button was
+  removed.)
 - Frontend talks to the API via `EXPO_PUBLIC_API_URL` (LAN IP for physical devices).
 - Windows Firewall must allow inbound `4000` + `8081` for a phone to connect (needs admin).

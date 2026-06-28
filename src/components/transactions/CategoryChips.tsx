@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -41,7 +42,7 @@ function Chip({
   return (
     <PressableScale onPress={onPress} scaleTo={0.93} accessibilityLabel={meta.label}>
       <Animated.View style={[styles.chip, animated]}>
-        <Text style={styles.icon}>{meta.icon}</Text>
+        <Ionicons name={meta.ionicon} size={16} color={meta.color} />
         <Text
           style={[styles.label, { color: selected ? meta.color : c.textMuted }]}
           numberOfLines={1}
@@ -85,6 +86,5 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
   },
-  icon: { fontSize: 15 },
   label: { fontSize: 13, fontFamily: fontFamily.semibold },
 });

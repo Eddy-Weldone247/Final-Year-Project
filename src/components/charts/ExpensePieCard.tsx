@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -38,9 +39,11 @@ function LegendRow({
 
   const inner = (
     <View style={styles.legendRow}>
-      <View style={[styles.dot, { backgroundColor: meta.color }]} />
+      <View style={styles.legendIcon}>
+        <Ionicons name={meta.ionicon} size={18} color={meta.color} />
+      </View>
       <Text style={[styles.legendLabel, { color: colors.text }]} numberOfLines={1}>
-        {meta.icon} {meta.label}
+        {meta.label}
       </Text>
       <Text style={[styles.legendValue, { color: colors.textMuted }]}>
         {formatCurrency(item.total)} · {pct}%
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
   centerValue: { fontSize: 16, fontWeight: '700' },
   legend: { gap: 8 },
   legendRow: { alignItems: 'center', flexDirection: 'row', gap: 8, paddingVertical: 2 },
-  dot: { borderRadius: 5, height: 10, width: 10 },
+  legendIcon: { width: 22, alignItems: 'center' },
   legendLabel: { flex: 1, fontSize: 14, fontWeight: '500' },
   legendValue: { fontSize: 13 },
 });

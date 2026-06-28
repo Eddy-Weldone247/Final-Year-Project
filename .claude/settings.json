@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx expo *)",
+      "Bash(npm run *)",
+      "Bash(node -e \"const a={...require\\('./package.json'\\).dependencies,...require\\('./backend/package.json'\\).dependencies}; const k=['expo-auth-session','expo-apple-authentication','expo-dev-client','expo-web-browser','expo-crypto','google-auth-library','apple-signin-auth']; const left=k.filter\\(x=>a[x]\\); console.log\\(left.length? 'STILL PRESENT: '+left.join\\(', '\\) : 'all removed ✓'\\);\")"
+    ]
+  }
+}
