@@ -233,7 +233,7 @@ export function BudgetFormScreen({ route, navigation }: Props) {
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
-              icon={<Text style={[styles.prefix, { color: c.inputIcon }]}>{CURRENCY_SYMBOL}</Text>}
+              prefix={CURRENCY_SYMBOL}
               error={error}
               success={valid}
               returnKeyType="done"
@@ -336,7 +336,6 @@ const styles = StyleSheet.create({
 
   // Input + actions
   form: { gap: spacing.lg },
-  prefix: { fontSize: 18, fontFamily: fontFamily.semibold },
   delete: {
     flexDirection: 'row',
     alignItems: 'center',
