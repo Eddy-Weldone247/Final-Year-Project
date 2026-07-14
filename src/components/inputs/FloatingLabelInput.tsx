@@ -1,5 +1,5 @@
 import { forwardRef, type ReactNode, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import Animated, {
   FadeInDown,
   interpolate,
@@ -19,6 +19,8 @@ const FLOAT_TOP = 9;
 interface FloatingLabelInputProps extends TextInputProps {
   label: string;
   icon?: ReactNode;
+  /** A short symbol (e.g. a currency) shown in a soft, rounded leading chip. */
+  prefix?: string;
   error?: string | null;
   success?: boolean;
   /** Renders a password visibility toggle and masks input by default. */
@@ -30,6 +32,7 @@ export const FloatingLabelInput = forwardRef<TextInput, FloatingLabelInputProps>
     {
       label,
       icon,
+      prefix,
       error,
       success = false,
       secure = false,
@@ -74,6 +77,9 @@ export const FloatingLabelInput = forwardRef<TextInput, FloatingLabelInputProps>
 
     const labelColor = error ? c.danger : focused ? c.primary : success ? c.success : c.textMuted;
 
+    // Left inset for the label + input text so they clear a leading chip/icon.
+    const leadPad = prefix ? 72 : icon ? 52 : 18;
+
     return (
       <View>
         <Animated.View
@@ -84,11 +90,17 @@ export const FloatingLabelInput = forwardRef<TextInput, FloatingLabelInputProps>
             stateBorder,
           ]}
         >
-          {icon ? <View style={styles.icon}>{icon}</View> : null}
+          {prefix ? (
+            <View style={[styles.prefixChip, { backgroundColor: `${c.success}1f` }]}>
+              <Text style={[styles.prefixText, { color: c.success }]}>{prefix}</Text>
+            </View>
+          ) : icon ? (
+            <View style={styles.icon}>{icon}</View>
+          ) : null}
 
           <Animated.Text
             pointerEvents="none"
-            style={[styles.label, { left: icon ? 52 : 18, color: labelColor }, labelStyle]}
+            style={[styles.label, { left: leadPad, color: labelColor }, labelStyle]}
           >
             {label}
           </Animated.Text>
@@ -96,7 +108,7 @@ export const FloatingLabelInput = forwardRef<TextInput, FloatingLabelInputProps>
           <TextInput
             ref={ref}
             value={value}
-            style={[styles.input, { color: c.text, paddingLeft: icon ? 52 : 18 }, style]}
+            style={[styles.input, { color: c.text, paddingLeft: leadPad }, style]}
             placeholderTextColor={c.textFaint}
             secureTextEntry={secure ? hidden : props.secureTextEntry}
             onFocus={(e) => {
@@ -155,6 +167,17 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
   },
   icon: { position: 'absolute', left: 16, top: 20, width: 24, alignItems: 'center' },
+  prefixChip: {
+    position: 'absolute',
+    left: 8,
+    top: 11,
+    width: 52,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prefixText: { fontSize: 15, fontFamily: fontFamily.bold },
   label: { position: 'absolute', fontFamily: fontFamily.medium },
   input: {
     height: 62,
