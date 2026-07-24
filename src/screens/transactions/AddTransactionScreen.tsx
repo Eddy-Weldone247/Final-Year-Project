@@ -26,6 +26,7 @@ import { TypeToggle } from '@/components/transactions/TypeToggle';
 import { getCategoryMeta } from '@/constants/categories';
 import { useCreateTransaction } from '@/hooks/useTransactions';
 import type { AppTabParamList } from '@/navigation/types';
+import { notifyExpenseRecorded } from '@/services/appNotifications';
 import { useAuthTheme } from '@/theme/authTheme';
 import { fontFamily } from '@/theme/typography';
 import type { Category, TransactionType } from '@/types/transaction';
@@ -68,6 +69,7 @@ export function AddTransactionScreen({ navigation, route }: Props) {
       { type, amount: numeric, category, note, date: date.toISOString() },
       {
         onSuccess: () => {
+          if (type === 'EXPENSE') notifyExpenseRecorded(numeric, category);
           setDone(true);
           setTimeout(() => {
             setDone(false);

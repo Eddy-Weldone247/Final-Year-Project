@@ -19,6 +19,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { useCreateTransaction } from '@/hooks/useTransactions';
 import { useSmsImport } from '@/hooks/useSmsImport';
 import type { TransactionsStackParamList } from '@/navigation/types';
+import { notifySmsImported } from '@/services/appNotifications';
+import { computeFingerprint } from '@/services/sms/dedupe';
 import { toCreatePayload } from '@/services/sms/toTransaction';
 import type { ParsedSms } from '@/services/sms/types';
 import { useImportedSmsStore } from '@/store/importedSmsStore';
@@ -52,17 +54,20 @@ export function ImportSmsScreen({ navigation }: Props) {
     if (selectedList.length === 0) return;
     setImporting(true);
     const imported: string[] = [];
+    const fingerprints: string[] = [];
     try {
       for (const candidate of selectedList) {
         await create.mutateAsync(toCreatePayload(candidate));
+        notifySmsImported(candidate.provider);
         imported.push(candidate.smsId);
+        fingerprints.push(computeFingerprint(candidate));
       }
-      markImported(imported);
+      markImported(imported, fingerprints);
       Alert.alert('Imported', `${imported.length} transaction(s) created from SMS.`, [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (e) {
-      markImported(imported); // keep the ones that already succeeded
+      markImported(imported, fingerprints); // keep the ones that already succeeded
       Alert.alert(
         'Import incomplete',
         `${imported.length} created before an error: ${getErrorMessage(e)}`,

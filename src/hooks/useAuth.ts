@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 
 import * as authApi from '@/api/auth.api';
+import { notifyWelcome } from '@/services/appNotifications';
 import { useAuthStore } from '@/store/authStore';
 
 /** Logs in and stores the session; navigation reacts to the auth state. */
@@ -17,7 +18,10 @@ export function useRegister() {
   const setAuth = useAuthStore((state) => state.setAuth);
   return useMutation({
     mutationFn: authApi.register,
-    onSuccess: ({ user, token }) => setAuth(user, token),
+    onSuccess: ({ user, token }) => {
+      setAuth(user, token);
+      notifyWelcome();
+    },
   });
 }
 

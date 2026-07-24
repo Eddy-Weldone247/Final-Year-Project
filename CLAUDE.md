@@ -6,7 +6,251 @@
 > this file** (design tokens, structure, commands, and the _Implemented features_
 > / _Last updated_ lines).
 
-_Last updated: 2026-06-13 (**Edit Transaction → glass**: `EditTransactionScreen` migrated to the
+_Last updated: 2026-07-24 (**Notification Center connected to app events**: the screen now shows
+real in-app notifications from a persisted `store/notificationsStore.ts` (Zustand + AsyncStorage,
+newest-first, capped 50, dedupe by `dedupeKey`). Thin generators in `services/appNotifications.ts`
+(`notifyWelcome`/`notifyExpenseRecorded`/`notifySmsImported`/`notifyBudgetWarning`/`notifyBudgetExceeded`/
+`notifyPredictionReady`/`notifyMonthlySummary`) are called imperatively from existing event sites:
+register success (`useAuth`), manual expense (`AddTransactionScreen`, EXPENSE only), SMS import
+(`useSmsAutoCapture` + `ImportSmsScreen`), budget ≥80%/100% (`triggers.runBudgetAlertCheck`, deduped
+via `notifiedBudgetsStore`, now fires in-app regardless of the OS push setting), LR prediction
+(`hooks/usePrediction` + `api/prediction.api` — model unchanged) and monthly summary (both on the
+Analytics screen, deduped once per month). `NotificationScreen` reads the store (kind→icon/tone via
+local `NOTIFICATION_META`, timestamp via `utils/relativeTime`), keeps the empty state and tap-to-read.
+No background service/engine; adds don't re-render Home (only the closed modal, which returns null).) added
+`<StatusBar style={isDark?'light':'dark'} />` inside the modal (legible icons vs the gradient in
+both themes), and made shadows consistent: `NotificationCard` + the header back pill now carry the
+same subtle themed `shadowColor: c.glow` soft lift as the empty-state circle (scaled by prominence).
+No redesign, no new functionality — the screen stays lightweight (static gradient, memoized cards,
+transparent modal + unmount-on-close), so it opens/returns/scrolls instantly with no white flash,
+lag, blocked touches, or extra re-renders.)
+(2026-07-24 — **Notification read/unread interaction**: `NotificationCard` is now
+tappable — a tap marks it read via local state in `NotificationScreen` (`markRead`, persists while
+Home is mounted). Unread = small coloured dot + **bolder title** (`fontFamily.bold`) + accent border
++ full opacity; read = no dot + `semibold` title + `glassBorder` + dimmed (0.72). The transition
+animates smoothly — opacity via `useAnimatedStyle`+`withTiming`, the dot via `FadeOut`. No delete /
+no swipe; UI + navigation preserved.)
+(2026-07-24 — **Notification screen — glass list + reusable card**: the Notification
+screen now renders a clean glass notification list from a **static** sample array (presentational
+only — NOT generated from app activity; set the array to `[]` for the empty state). New reusable
+`components/notifications/NotificationCard.tsx` — a translucent glass card with a tone-tinted icon,
+title, description, timestamp, and a read/unread indicator (unread = accent dot + border + full
+opacity; read = faded); staggered `FadeInDown` entrances, no per-card blur (lightweight). The
+`NotificationScreen` shows the list or the existing empty state when the array is empty. Only the
+Notification screen changed — Home, navigation, and other screens untouched.)
+(2026-07-24 — **Notification screen — glass empty state**: the Home bell's native
+`Alert` placeholder was replaced with a lightweight, glassmorphic **Notification screen** (new
+`components/notifications/NotificationScreen.tsx`) — presentational only (no notification data or
+logic): a "Notifications" header with a glass back pill, and a centered empty state (glass/neu icon
+circle with soft-lift shadow + primary halo + `BellIcon`, headline "No Notifications Yet", subtitle
+"You're all caught up. / Alerts and reminders will appear here when available."), with subtle
+staggered fade-ins. Static `LinearGradient` bg (no animated loops) keeps it cheap; transparent
+modal + own `SafeAreaProvider`/`initialWindowMetrics` + unmount-on-close keep Home instantly
+interactive; light/dark via `useAuthTheme`. Only the bell's `onPress` + a modal render were added
+to `HomeScreen` — the bell UI, navigation, and all other screens are unchanged.)
+(2026-07-23 — **Notification feature rolled back to baseline**: the in-app Notification
+Center built earlier this session was fully reverted to the original placeholder. The Home bell is
+back to `Alert.alert('Notifications', "You're all caught up — alerts are coming soon.")` (with the
+always-on dot). **Deleted**: `components/notifications/*`, `hooks/useNotifications.ts` +
+`usePredictions.ts`, `store/notificationReadStore.ts` + `achievementStore.ts`,
+`services/{achievements,budgetAlerts,spendingInsights,predictionNotifications,reminderNotifications}.ts`,
+`api/prediction.api.ts`, `types/notification.ts`, `utils/dateKeys.ts`. **Restored to originals**:
+`HomeScreen.tsx`, `services/notifications/triggers.ts`, `store/notifiedBudgetsStore.ts`. The
+pre-existing OS local-notification system (`services/notifications/*`, `<NotificationManager/>`,
+`settingsStore` prefs) is unchanged. NOTE: the dated notification-center entries below are
+historical only — all that work has been removed.)
+(2026-07-23 — **Notification → Home white-screen fix**: after the bell touch fix
+(`if (!visible) return null` fully unmounts the Modal on close), returning to Home flashed a 3–4s
+white screen. Cause: the Modal window was `transparent={false}` (fully opaque); Android stops
+compositing the occluded Home window, so destroying that opaque window on close forced a full, slow
+redraw of Home's heavy glass background + `BlurView`s + charts. Fix (`NotificationCenter.tsx` only):
+Modal is now `transparent` — the content still paints an opaque gradient so it looks identical, but
+the transparent window keeps Home composited behind it → instant reveal, no white. HomeScreen never
+remounts and runs no focus work; nothing else changed.)
+(2026-07-23 — **Notification bell needs-multiple-taps — definitive fix**: after
+opening the Notification Center once and closing, the Home bell needed 2–3 taps to reopen. Real
+root cause: the RN `<Modal>` was **always mounted** (only its `visible` prop toggled), and a
+dismissed-but-mounted Modal on Android leaves its native Dialog **window** in the hierarchy, which
+swallows the first taps meant for the Home screen behind it. Fix (`NotificationCenter.tsx` only):
+`if (!visible) return null;` — the Modal is rendered **only while open**, so it (and its window)
+fully unmount on close → Home is always interactive → every tap opens instantly. The first-render
+gating (`SafeAreaProvider`+`initialWindowMetrics`, mount after `runAfterInteractions`) now applies
+per open; entrance animations preserved (close is instant, not faded). HomeScreen/design untouched.)
+(2026-07-22 — **Notification Center first-render fix**: the modal rendered broken on
+its first open (header overlapping the status bar, wrong safe area, blur not fully drawn) then fine
+after. Cause: a RN `Modal` is a **separate native window**, so the app-root `SafeAreaProvider`'s
+insets don't reach it and its window isn't laid out on the first visible frame. Fix (in
+`NotificationCenter.tsx` only, no design change): wrap the modal in its **own** `SafeAreaProvider`
+seeded with `initialWindowMetrics` (insets correct on frame 1), and gate the glass background +
+animated content behind a `ready` flag set via `InteractionManager.runAfterInteractions` on the
+first open (heavy render + entrance animations start only after the window has laid out; solid
+gradient backdrop bridges so nothing flashes; stays mounted so re-opens/close stay smooth).)
+(2026-07-22 — **Notification system audit**: reviewed the whole feature after all
+phases. Surgical, no working logic rewritten. (1) Removed duplicate `dayKey`/`monthKey`/`monthTag`
+copies from `achievements`/`reminderNotifications`/`predictionNotifications` → shared
+`utils/dateKeys.ts` (single source of truth). (2) Hardened `useNotifications` feed assembly with an
+**id-uniqueness guard** (dedup by id in the final list) so no source can ever surface a duplicate
+card, on top of the existing per-source stable ids + read/dismissed/earned stores. Verified:
+meaningful-only generation (each service gates on thresholds/confidence/coverage/time-windows),
+no duplicates (namespaced ids + stores + render guard), smooth Reanimated animations
+(entering/exiting/layout + read-fade), and glass/neu design consistency (all components use
+`useAuthTheme` glass tokens; cards use translucent surfaces with **no per-card BlurView** for
+60 FPS). `tsc`/`eslint` clean.)
+(2026-07-22 — **Notification prioritization**: consolidated the notification
+`priority` + `tone` split into four semantic **priority levels** — `critical` · `warning` · `info` ·
+`success` — as the single driver of a card's indicator colour + icon. `meta.ts` `PRIORITY_META`
+(consistent label + Ionicon per level: alert-circle/warning/information-circle/checkmark-circle) +
+`priorityColor` (theme palette: danger red / amber / primary blue / success green — matches the
+app design language). `NotificationTone` removed; `AppNotification.tone` dropped; each source now
+maps to a level (budget exceeded→critical, ≥threshold→warning, on-track & achievements & income→
+success, reminders/insights→info/warning). `NotificationCard` tints stripe/icon/badge/border and a
+priority pill (icon + label) by the level colour. Feed-only, modular; no other app areas touched.
+`tsc`/`eslint` clean.)
+(2026-07-22 — **Notification management**: full read/delete controls in the
+Notification Center. `notificationReadStore` gained `dismissedIds` + `dismiss(id)` / `clear(ids)`
+(persisted) alongside the existing `markRead`/`markAllRead`; `useNotifications` filters dismissed
+ids from the derived feed and exposes `dismiss` + `clearAll`. UI: each `NotificationCard` has a ✕
+**delete** button and an **unread badge** on its icon; read cards fade (animated opacity 1→0.7) and
+the badge fade-outs — removal + list reflow animate via Reanimated `exiting`(FadeOut)+`layout`
+(LinearTransition). Header adds a **Clear all** (trash) action (confirm Alert) beside **Mark all
+read**. Feed-only change — no other app areas touched. `tsc`/`eslint` clean.)
+(2026-07-22 — **Motivational / achievement notifications**: new persisted
+`store/achievementStore.ts` (unlocked-achievement **history**, `award()` no-ops on a known id) +
+pure `services/achievements.ts` (`detectAchievements`, tunable `DEFAULT_ACHIEVEMENT_CONFIG`) drive
+positive-reinforcement notifications (new `'achievement'` notification kind): 🎉 tracking streak
+(3/7/14/30/60/100 days), 👏 transaction-count milestones (10/50/100/…), 📈 savings improved vs the
+previous completed month, 🏆 stayed within the monthly budget (celebrated near month-end when on
+track). `useNotifications` detects currently-satisfied achievements, unlocks new ones **once** via a
+`useEffect`→`award`, and renders the persisted history (snapshotted title/body + `earnedAt`) as
+cards — so each fires exactly once, survives restarts, and never duplicates (milestone ids stable,
+monthly ids month-keyed). Modular; no other notification types touched. `tsc`/`eslint` clean.)
+(2026-07-22 — **Reminder notifications**: new reusable
+`services/reminderNotifications.ts` (`buildReminderNotifications`, tunable `DEFAULT_REMINDER_CONFIG`)
+finally uses the `'reminder'` notification kind in the Notification Center feed. Context-aware,
+intelligently scheduled reminders: "log today's spending" (evening only, suppressed once anything
+is logged today), "monthly report ready" (1st of month), "budgets reset tomorrow" (last day of
+month, if budgets exist), and a mid-month "review your budget" check-in (day 15, if budgets exist).
+**Anti-spam by design**: each fires only in its window and carries a per-day / per-month id so it
+appears once per cadence (deduped via `notificationReadStore`); suppressed when it would be noise.
+Wired into `useNotifications` (variant→visual map, `kind:'reminder'`). Pure/modular; no scheduling
+side-effects (distinct from the OS `scheduleDailyReminder`/`scheduleWeeklySummary` push path).
+`tsc`/`eslint` clean.)
+(2026-07-22 — **AI prediction notifications**: the existing ML LinearRegression
+forecasts are now surfaced as Notification Center alerts (model unchanged — consumed only). New
+frontend layer: `api/prediction.api.ts` (`forecastSpending`/`forecastCategory` → `POST
+/predictions/forecast|category?days=`), `hooks/usePredictions.ts` (React Query, 6h stale, retry
+off, gated on auth), and reusable `services/predictionNotifications.ts` (`buildPredictionNotifications`,
+tunable `DEFAULT_PREDICTION_CONFIG`). Emits: month spend projection ("You are predicted to spend
+GH₵4,350 this month."), projected savings ("…likely to save GH₵420 if your current spending
+continues."), and per-budget exceed forecasts ("…may exceed your Food budget within 5 days.").
+**Only when confident** (R² ≥ `minR2`, `n_samples` ≥ `minSamples`) **and realistic** (finite,
+non-negative, within bounds, days-to-exceed 1..`maxDaysToExceed`); otherwise nothing. Ids are
+month-bucketed → one stable slot each (deduped via `notificationReadStore`). Wired into
+`useNotifications` (horizon = days left in month); ML service down → forecasts error silently → no
+prediction cards. `tsc`/`eslint` clean.)
+(2026-07-22 — **Spending insight notifications → intelligent**: new reusable
+`services/spendingInsights.ts` (`buildSpendingInsights`, tunable `DEFAULT_INSIGHT_CONFIG`) replaces
+the Notification Center's single top-category insight. A single O(n) pass over recent transaction
+history buckets this-week vs last-week spend (overall + per category) and emits only **meaningful**
+insights: week-over-week total delta ("You spent GH₵250 more this week than last week."), per-
+category % change ("Food spending increased by 18%." / "Transport spending decreased by 12%."), and
+top-2 ranking changes ("Entertainment is now your second highest spending category."). Gated by
+absolute+% thresholds and a per-category value floor (tiny categories' big swings ignored); skips
+when history coverage is insufficient. Ids are 7-day-bucketed so an insight fills one stable weekly
+slot (deduped via `notificationReadStore`) — no repetition. `useNotifications` maps them to card
+visuals (trending-up/down/stats icons). Existing analytics (AnalyticsScreen/useStats) untouched;
+the hook no longer needs `useStats`. `tsc`/`eslint` clean.)
+(2026-07-22 — **Budget alert notifications → configurable thresholds**: new reusable
+`services/budgetAlerts.ts` (`buildBudgetAlerts` / `buildBudgetAlert` / `reachedMilestone`,
+`DEFAULT_BUDGET_THRESHOLDS` = `[50,75,80,90,100]`) is the single source of truth for budget-alert
+semantics + wording (⚠️ reached X% · 🚨 exceeded by GH₵Y · ✅ on track). Both consumers use it:
+the **Notification Center** feed (`useNotifications`) surfaces milestone alerts (+ on-track once
+there's spend), and the **OS trigger** (`runBudgetAlertCheck`) pushes them — deduped per milestone
+via `notifiedBudgetsStore` (upgraded from status→milestone number, persist `-v2`) so alerts fire
+once per threshold escalation, never duplicated. Thresholds are code-configurable (pass a custom
+list); no UI changed outside the Notification Center. `tsc`/`eslint` clean.)
+(2026-07-22 — **Notification Center**: the Home bell no longer shows a placeholder
+`Alert` — it opens a premium **glass Notification Center** (`components/notifications/*` —
+`NotificationCenter` full-screen `Modal` + `NotificationCard` + `NotificationEmptyState`, reusing
+the auth glass system: `AnimatedBackground`, glass back pill, `PressableScale`, `useAuthTheme`).
+Cards show icon + title + description + relative timestamp + **priority indicator** + read/unread
+state; grouped into **Today / Yesterday / Earlier** (`meta.ts` helpers). Feed is derived live by
+`hooks/useNotifications.ts` from real activity (budget warning/exceeded alerts, money received,
+AI top-category insight) with read state persisted in `store/notificationReadStore.ts`
+(`markRead`/`markAllRead`); empty → beautiful empty state. Bell dot + a11y label now reflect the
+unread count. Presented as a modal so **navigation is unchanged**; only `HomeScreen` wiring touched,
+no other screens. Dark/light auto via the palette; Expo Go-safe.)
+(2026-07-21 — **SMS parser architecture audit**: whole pipeline reviewed after all
+phases. Surgical, no working logic rewritten. (1) Removed dead code from `patterns.ts`
+(`AMOUNT_PREFIX_RE`/`AMOUNT_SUFFIX_RE`/`FEE_CONTEXT_RE`/`CATEGORY_KEYWORDS`, superseded by
+`amount.ts`/`category.ts`) — it now holds only shared cross-cutting regexes. (2) Single source of
+truth for currency detection: `amount.hasCurrencyAmount()` reused by `validator.ts` (removed a
+duplicated regex + a validate/extract disagreement risk). (3) Extracted `detectProvider` →
+`provider.ts` and `extractDate` → `date.ts`; `parser.ts` is now a pure orchestrator
+(validator→provider→type→amount→merchant→category→date). (4) Added `index.ts` **public API barrel**
+(`@/services/sms`). (5) **Functional fix**: `detectProvider` now recognises named banks + card
+networks (Ecobank/Absa/Stanbic/GTBank/Visa/Mastercard → `Bank`), which were previously dropped —
+validation still runs first so no spam leaks. Verified against the **real compiled pipeline** with
+55 realistic cases (MoMo/Telecel/Ecobank/Absa/Visa/Mastercard/salary/ATM/utility/food + OTP/promo/
+scam/delivery/recharge) — 55/55 pass; invariants confirmed: no OTP/promo/scam imported, no phone
+number → amount, every category in-enum, dedup within-batch + against store. `tsc`/`eslint` clean.)
+(2026-07-21 — **SMS duplicate detection → content fingerprints**: new
+`services/sms/dedupe.ts` (`filterDuplicates` / `computeFingerprint` / `extractReference` /
+`logDuplicates`) upgrades import dedup from **SMS-id-only** to a content **fingerprint** built from
+amount + timestamp (minute bucket) + sender/provider + reference number (scanned from `raw`, no
+parser change) + merchant — reference wins when present, else the composite. Single O(n) `Set`-based
+pass that also catches intra-batch dupes; skips are returned with a reason and logged
+(`[SMS dedupe] …`). `importedSmsStore` now persists `importedFingerprints` alongside `importedIds`;
+`markImported(ids, fingerprints?)`. Wired into all three commit points (`useSmsImport` scan,
+`ImportSmsScreen` import, `useSmsAutoCapture`). Parser extraction untouched.)
+(2026-07-21 — **SMS transaction-type detection → modular + configurable**: new
+`services/sms/transactionType.ts` replaces the old inline `detectType` in `parser.ts`. A
+configurable, ORDERED keyword ruleset (`DEFAULT_TYPE_RULES`) detects a rich `SmsTransactionType`
+(Income/Expense/Transfer/Withdrawal/Deposit/Refund/Cash Out/Cash In) via
+`classifyTransactionType(body, rules?)` (first-match; `null` if no direction signal → `parseSms`
+drops the SMS), then maps to the domain `TransactionType` via `smsTypeToDomain` (Deposit/Cash In/
+Refund→INCOME; Withdrawal/Cash Out→EXPENSE; **Transfer resolved by direction words** — inbound
+from/received→INCOME else EXPENSE). Income is ordered before Expense (preserving the old
+credit-before-debit precedence). Domain type unchanged; only type detection changed.)
+(2026-07-21 — **SMS category classification → modular + configurable**: new
+`services/sms/category.ts` replaces the old inline `guessCategory` in `parser.ts`. A configurable,
+ORDERED keyword ruleset (`DEFAULT_CATEGORY_RULES`) classifies into a rich `SmsCategory` label set
+(Food/Transport/Shopping/Utilities/Entertainment/Healthcare/Education/Salary/Income/Transfer/Bills/
+Airtime/Internet/Mobile Money/Cash Withdrawal/Cash Deposit/Insurance/Investments/Miscellaneous) via
+`classifySmsCategory(text, rules?)` (first-match wins; unmatched → Miscellaneous), then maps to the
+app's fixed domain `Category` enum via `SMS_CATEGORY_TO_DOMAIN` so `parseSms` still stores a valid
+`Category` (Bills/Airtime/Internet→UTILITIES; Salary/Transfer/MoMo/Cash*/Insurance/Investments→
+OTHERS). The domain enum is unchanged — persisting the rich labels would need a Prisma-enum
+migration + Zod/`types` changes (out of scope). Only classification changed.)
+(2026-07-21 — **SMS merchant extraction → modular**: new `services/sms/merchant.ts`
+(`extractMerchant` → short name or `"Unknown"`; reusable helpers `matchKnownEntity` /
+`extractCounterparty` / `cleanMerchantName` + a curated `KNOWN_ENTITIES` dictionary of GH banks,
+wallets & merchants — MTN MoMo, Ecobank, Absa, Stanbic, Bolt, Uber, Melcom, KFC, Shell, Goil…)
+replaces the old inline `extractMerchant`/`cleanMerchant` in `parser.ts`. It captures the
+counterparty after money-flow prepositions (from/to/at) with strict name-token rules (stops at
+connective words, punctuation, or account/phone numbers) and normalises known brands to canonical
+casing; when nothing name-like is found it returns `"Unknown"` instead of a whole sentence. Only
+merchant extraction changed — validation, amount, category, types and UI untouched.)
+(2026-07-21 — **SMS amount extraction → modular**: new `services/sms/amount.ts`
+(`extractAmount` → `{ amount, currency, confidence }`, `CurrencyCode` `'GHS' | 'USD'`) replaces
+the old inline `extractAmount` in `parser.ts`. A number only qualifies if **adjacent to a
+currency marker** (GH₵ / GHS / GHC / ₵ / cedis / USD / US$ / $), which alone discards phone
+numbers, OTPs, reference / account / txn IDs and reward points. When several currency amounts
+exist, each is scored by its **own clause's** context (positive txn verbs vs balance/fee/levy/
+tax/reward) to pick the real transaction amount; `confidence` reflects the pick. Only amount
+extraction changed — validation, category, types, and UI untouched (`parseSms` still uses
+`.amount`).)
+(2026-07-21 — **SMS validation layer**: new `services/sms/validator.ts` —
+a modular, confidence-scored gate (`validateSms`/`isFinancialSms`, `DEFAULT_CONFIDENCE_THRESHOLD`
+`0.5`) run as the **first line of `parseSms`** so OTPs, verification codes, promos, delivery /
+recharge confirmations, lottery and general notifications are ignored before any field
+extraction (fixes random numbers being imported as amounts). Weighted positive signals
+(currency amount · debit/credit direction · running balance · txn vocab · trusted sender) minus
+spam penalties; a spam term is only tolerated as a safety **footer** ("never share your OTP/PIN")
+when the message is structurally a real transaction (currency **+** balance **+** core verb).
+Supports MTN MoMo / Telecel / AirtelTigo / bank / Visa / Mastercard. No parser-extraction, UI,
+type, or consumer changes — both `parseMany` callers inherit the gate.)
+(2026-06-13 — **Edit Transaction → glass**: `EditTransactionScreen` migrated to the
 premium glass design system (headerless `AuthLayout` + back pill), mirroring the Add screen —
 shared animated `TypeToggle`, hero `AmountField`, glass details card, `GradientButton` +
 `SuccessCheck` overlay, frosted danger delete. Keyed inner form re-seeds per transaction; route
@@ -245,8 +489,30 @@ ad-hoc numbers** so the app keeps a consistent rhythm.
   alerts → transactions (`src/services/sms/*`; Transactions → Import + Home shortcut).
   Manual import **and** opt-in **auto-capture** (foreground polling via
   `useSmsAutoCapture` + `settingsStore`, reuses the reader/parser). Parser is pure TS;
-  reading SMS needs a **dev build** + `READ_SMS` (no-op/guarded in Expo Go). See
-  `docs/SMS_IMPORT.md`.
+  reading SMS needs a **dev build** + `READ_SMS` (no-op/guarded in Expo Go). A modular
+  **validation layer** (`services/sms/validator.ts` — `isFinancialSms`/`validateSms`) gates
+  `parseSms`: a **confidence score** (weighted currency/direction/balance/vocab/sender signals
+  minus OTP/promo/delivery/recharge/lottery penalties, threshold `0.5`) drops non-transaction
+  SMS before extraction, so stray numbers in OTPs/promos are never imported. A modular
+  **amount extractor** (`services/sms/amount.ts` — `extractAmount` → `{ amount, currency,
+  confidence }`) then pulls only the true transaction amount: numbers must be currency-tagged
+  (GH₵/GHS/GHC/₵/cedis/USD/US$/$) and are scored by their own-clause context so balances, fees,
+  levies, reward points, phone numbers and reference/txn IDs are never mistaken for the amount.
+  A modular **merchant extractor** (`services/sms/merchant.ts` — `extractMerchant` + reusable
+  `matchKnownEntity`/`extractCounterparty`/`cleanMerchantName` over a `KNOWN_ENTITIES` dictionary)
+  resolves the counterparty to a short canonical name (banks, wallets, Bolt/Uber/Melcom/KFC/Shell/
+  Goil, or a person's name), returning `"Unknown"` rather than a whole sentence when none is found.
+  A configurable **type detector** (`services/sms/transactionType.ts` — `detectType` /
+  `classifyTransactionType` over `DEFAULT_TYPE_RULES`) reads the money-direction into a rich
+  `SmsTransactionType` (Income/Expense/Transfer/Withdrawal/Deposit/Refund/Cash Out/Cash In) and
+  maps it to the domain `INCOME`/`EXPENSE` (Transfer resolved by direction). Finally a configurable
+  **category classifier** (`services/sms/category.ts` — `guessCategory` / `classifySmsCategory`
+  over `DEFAULT_CATEGORY_RULES`) keyword-maps the transaction into a rich `SmsCategory`
+  (Airtime/Internet/Salary/Cash Withdrawal/Investments/…, unmatched → Miscellaneous) and collapses
+  it onto the domain `Category` enum for storage. **Duplicate detection** (`services/sms/dedupe.ts`)
+  fingerprints each transaction by amount + timestamp + sender + reference + merchant (persisted in
+  `importedSmsStore` alongside SMS ids), so a re-sent/duplicate SMS is skipped (and logged) rather
+  than imported twice. See `docs/SMS_IMPORT.md`.
 - **Notifications (local)**: `expo-notifications`, **local-only** so it works in Expo Go
   (no push tokens / FCM). Service in `services/notifications/*`: `configureNotifications`
   (foreground handler + Android channel, called in `App.tsx`), `ensureNotificationPermission`,
@@ -278,7 +544,9 @@ ad-hoc numbers** so the app keeps a consistent rhythm.
 - **Dashboard (Home)**: premium **glassmorphism, dark-first** home (Revolut/Coinbase/
   Wealthsimple vibe) — uniquely uses the **auth design system** (`useAuthTheme` +
   `AnimatedBackground` gradient/blobs) rather than the core app theme. Sections
-  (`components/dashboard/*`): (1) header (avatar + greeting + glass notification bell),
+  (`components/dashboard/*`): (1) header (avatar + greeting + glass notification bell → opens the
+  glass **Notification screen** — `NotificationScreen` + reusable `NotificationCard` list / empty
+  state, `components/notifications/*`),
   (2) **balance card** (`BalanceHero` — frosted `GlassCard`, count-up total balance via
   `AnimatedCounter`, this-month income/expense, embedded **smooth area sparkline** of
   daily spend via gifted-charts), (3) **quick actions** (`QuickActions` glass tiles →
@@ -308,7 +576,10 @@ ad-hoc numbers** so the app keeps a consistent rhythm.
   `POST /api/predictions/forecast?days=`, `/category`, `/train` (generate + store);
   `GET /api/predictions` (history), `/api/predictions/latest?kind=&days=` (last stored,
   works even if the ML service is down). Returns 503 if the ML service is unreachable.
-  **Not yet surfaced in the app UI.** See `ml-service/README.md`.
+  **Surfaced in the app** as **AI prediction notifications** in the Notification Center
+  (`api/prediction.api.ts` + `hooks/usePredictions.ts` → `services/predictionNotifications.ts`):
+  confidence-gated month-spend projection, projected savings, and per-budget exceed forecasts.
+  See `ml-service/README.md`.
 - **Admin**: `User.role` (`USER`/`ADMIN`); admin-only APIs guarded by
   `authenticate` → `requireAdmin` (401 no token / 403 non-admin). `GET /api/admin/stats`
   (platform totals: users, transactions, income, expenses, net + per-category stats)

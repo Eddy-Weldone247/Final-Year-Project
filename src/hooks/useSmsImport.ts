@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 
+import { filterDuplicates, logDuplicates } from '@/services/sms/dedupe';
 import { parseMany } from '@/services/sms/parser';
 import { isSmsReadingAvailable, readInbox, requestSmsPermission } from '@/services/sms/smsReader';
 import type { ParsedSms } from '@/services/sms/types';
@@ -18,6 +19,7 @@ export function useSmsImport() {
   const [candidates, setCandidates] = useState<ParsedSms[]>([]);
   const [error, setError] = useState<string | null>(null);
   const importedIds = useImportedSmsStore((state) => state.importedIds);
+  const importedFingerprints = useImportedSmsStore((state) => state.importedFingerprints);
 
   const scan = useCallback(async () => {
     setError(null);
@@ -34,14 +36,18 @@ export function useSmsImport() {
     try {
       const sinceMs = Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
       const messages = await readInbox({ maxCount: 500, sinceMs });
-      const seen = new Set(importedIds);
-      setCandidates(parseMany(messages).filter((p) => !seen.has(p.smsId)));
+      const { unique, duplicates } = filterDuplicates(parseMany(messages), {
+        importedIds,
+        importedFingerprints,
+      });
+      logDuplicates(duplicates);
+      setCandidates(unique);
       setStatus('ready');
     } catch (e) {
       setError(getErrorMessage(e));
       setStatus('error');
     }
-  }, [importedIds]);
+  }, [importedIds, importedFingerprints]);
 
   return { status, candidates, error, scan };
 }
