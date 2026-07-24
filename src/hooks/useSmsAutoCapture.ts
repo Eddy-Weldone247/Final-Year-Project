@@ -3,7 +3,9 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import * as transactionApi from '@/api/transaction.api';
+import { notifySmsImported } from '@/services/appNotifications';
 import { onTransactionCreated } from '@/services/notifications';
+import { computeFingerprint, filterDuplicates, logDuplicates } from '@/services/sms/dedupe';
 import { parseMany } from '@/services/sms/parser';
 import { isSmsReadingAvailable, readInbox } from '@/services/sms/smsReader';
 import { toCreatePayload } from '@/services/sms/toTransaction';
@@ -36,22 +38,29 @@ export function useSmsAutoCapture() {
       try {
         const sinceMs = Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
         const messages = await readInbox({ maxCount: 100, sinceMs });
-        const seen = new Set(useImportedSmsStore.getState().importedIds);
-        const fresh = parseMany(messages).filter((p) => !seen.has(p.smsId));
+        const { importedIds, importedFingerprints } = useImportedSmsStore.getState();
+        const { unique: fresh, duplicates } = filterDuplicates(parseMany(messages), {
+          importedIds,
+          importedFingerprints,
+        });
+        logDuplicates(duplicates);
         if (fresh.length === 0) return;
 
         const created: string[] = [];
+        const fingerprints: string[] = [];
         for (const candidate of fresh) {
           try {
             const tx = await transactionApi.createTransaction(toCreatePayload(candidate));
             onTransactionCreated(tx);
+            notifySmsImported(candidate.provider);
             created.push(candidate.smsId);
+            fingerprints.push(computeFingerprint(candidate));
           } catch {
             // Skip this one; a later run will retry it.
           }
         }
         if (created.length > 0) {
-          markImported(created);
+          markImported(created, fingerprints);
           queryClient.invalidateQueries({ queryKey: ['transactions'] });
         }
       } catch {

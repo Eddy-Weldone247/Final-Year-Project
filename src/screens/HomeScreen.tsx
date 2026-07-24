@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,6 +16,7 @@ import { BalanceHero } from '@/components/dashboard/BalanceHero';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Skeleton } from '@/components/dashboard/Skeleton';
 import { BellIcon, SparkleIcon } from '@/components/icons';
+import { NotificationScreen } from '@/components/notifications/NotificationScreen';
 import { getCategoryMeta } from '@/constants/categories';
 import { useStats } from '@/hooks/useStats';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -36,6 +38,7 @@ function greeting(): string {
 
 export function HomeScreen({ navigation }: Props) {
   const { c } = useAuthTheme();
+  const [notifOpen, setNotifOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const stats = useStats();
   const transactions = useTransactions();
@@ -78,9 +81,7 @@ export function HomeScreen({ navigation }: Props) {
               </Text>
             </View>
             <PressableScale
-              onPress={() =>
-                Alert.alert('Notifications', "You're all caught up — alerts are coming soon.")
-              }
+              onPress={() => setNotifOpen(true)}
               accessibilityLabel="Notifications"
               style={styles.bellWrap}
             >
@@ -195,6 +196,8 @@ export function HomeScreen({ navigation }: Props) {
           </GlassCard>
         </ScrollView>
       </SafeAreaView>
+
+      <NotificationScreen visible={notifOpen} onClose={() => setNotifOpen(false)} />
     </View>
   );
 }

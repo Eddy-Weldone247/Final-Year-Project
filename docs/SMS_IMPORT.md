@@ -76,14 +76,29 @@ mounted via `components/SmsAutoCapture.tsx`, toggled through `store/settingsStor
 
 ## Implementation
 
+The pipeline is a chain of single-responsibility stages, each an independently
+testable module, orchestrated by `parser.ts`. Import the public API from the
+`src/services/sms/index.ts` barrel (`@/services/sms`).
+
+**Pipeline order:** `validator → provider → transactionType → amount → merchant → category → date` (then `dedupe` guards imports).
+
 | File | Role |
 | --- | --- |
-| `src/services/sms/patterns.ts` | regex + keyword maps (amount, type, providers, categories) |
-| `src/services/sms/parser.ts` | `parseSms` / `parseMany` — extract fields |
+| `src/services/sms/index.ts` | **public API barrel** — import from `@/services/sms` instead of deep paths |
+| `src/services/sms/patterns.ts` | shared cross-cutting regexes only (`CREDIT_RE`/`DEBIT_RE`, `PROVIDER_HINTS`, `BANK_RE`, `MERCHANT_STOP_RE`) |
+| `src/services/sms/validator.ts` | `validateSms` / `isFinancialSms` — confidence-scored gate that rejects OTP / promo / delivery / recharge / lottery / notification SMS before parsing (reuses `amount.hasCurrencyAmount`) |
+| `src/services/sms/provider.ts` | `detectProvider` — MoMo wallets + banks/card networks (Ecobank/Absa/Stanbic/GTBank/Visa/Mastercard → `Bank`), else `null` |
+| `src/services/sms/transactionType.ts` | `detectType` (+ `classifyTransactionType`, `DEFAULT_TYPE_RULES`, `smsTypeToDomain`) — configurable detection into a rich `SmsTransactionType` (Income/Expense/Transfer/Withdrawal/Deposit/Refund/Cash Out/Cash In), mapped to the domain `TransactionType`; `null` drops the SMS |
+| `src/services/sms/amount.ts` | `extractAmount` (+ `hasCurrencyAmount`) — modular, currency-aware amount extractor returning `{ amount, currency, confidence }`; picks the real transaction amount over balances/fees/OTP/refs |
+| `src/services/sms/merchant.ts` | `extractMerchant` (+ `matchKnownEntity` / `extractCounterparty` / `cleanMerchantName`, `KNOWN_ENTITIES`) — resolves the merchant/receiver/sender/institution to a short canonical name, or `"Unknown"` |
+| `src/services/sms/category.ts` | `guessCategory` (+ `classifySmsCategory`, `DEFAULT_CATEGORY_RULES`, `SMS_CATEGORY_TO_DOMAIN`) — configurable keyword classifier into a rich `SmsCategory` set, mapped to the domain `Category` enum; defaults to Miscellaneous/`OTHERS` |
+| `src/services/sms/date.ts` | `extractDate` — explicit date in body (dd-MMM-yyyy / yyyy-mm-dd / dd-mm-yyyy) or received-time fallback |
+| `src/services/sms/parser.ts` | `parseSms` / `parseMany` — orchestrator; runs the stages in order, short-circuiting to `null` |
+| `src/services/sms/dedupe.ts` | `filterDuplicates` / `computeFingerprint` — content-fingerprint duplicate detection (amount + timestamp + sender + reference + merchant); skips + logs dupes, O(n) |
 | `src/services/sms/smsReader.ts` | native reader (guarded), `READ_SMS` permission |
 | `src/services/sms/toTransaction.ts` | parsed SMS → `CreateTransactionPayload` |
 | `src/hooks/useSmsImport.ts` | availability → permission → read → parse → dedupe |
-| `src/store/importedSmsStore.ts` | persisted set of imported SMS ids |
+| `src/store/importedSmsStore.ts` | persisted imported SMS ids **and** content fingerprints |
 | `src/screens/transactions/ImportSmsScreen.tsx` | review & import UI |
 
 The parser is pure TypeScript and unit-testable independently of the device.

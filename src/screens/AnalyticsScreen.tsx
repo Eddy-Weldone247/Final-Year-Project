@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,7 +12,9 @@ import { ExpensePieCard } from '@/components/charts/ExpensePieCard';
 import { AnimatedCounter } from '@/components/dashboard/AnimatedCounter';
 import { Skeleton } from '@/components/dashboard/Skeleton';
 import { SparkleIcon } from '@/components/icons';
+import { usePrediction } from '@/hooks/usePrediction';
 import { useStats } from '@/hooks/useStats';
+import { notifyMonthlySummary } from '@/services/appNotifications';
 import { type AuthPalette, useAuthTheme } from '@/theme/authTheme';
 import { fontFamily } from '@/theme/typography';
 
@@ -40,6 +43,13 @@ function Stat({
 export function AnalyticsScreen() {
   const { c } = useAuthTheme();
   const stats = useStats();
+
+  // Event 5: run the LR spending prediction and notify when it completes.
+  usePrediction();
+  // Event 6: the monthly summary is available once stats load (once per month).
+  useEffect(() => {
+    if (stats.isSuccess) notifyMonthlySummary();
+  }, [stats.isSuccess]);
 
   const data = stats.data;
   const monthly = data?.monthly ?? [];

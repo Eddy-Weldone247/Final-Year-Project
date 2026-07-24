@@ -14,14 +14,18 @@
     "android": {
       "package": "com.expensee.app",
       "permissions": [
-        "android.permission.READ_SMS"
+        "android.permission.READ_SMS",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
       "bundler": "metro"
     },
     "extra": {
-      "apiUrl": "http://localhost:4000/api"
+      "apiUrl": "http://localhost:4000/api",
+      "eas": {
+        "projectId": "9bcc56dc-af8f-4c32-845b-f3a7b0b20b38"
+      }
     },
     "plugins": [
       "expo-asset",
@@ -39,6 +43,7 @@
           "color": "#2563eb"
         }
       ]
-    ]
+    ],
+    "owner": "eddymadrids-team"
   }
 }
